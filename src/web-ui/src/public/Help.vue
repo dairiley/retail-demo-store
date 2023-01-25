@@ -49,9 +49,9 @@
 
 <script>
 import { Interactions } from 'aws-amplify';
-import { AmplifyEventBus } from 'aws-amplify-vue';
+// import { AmplifyEventBus } from 'aws-amplify-vue';
 
-import Layout from '@/components/Layout/Layout'
+import Layout from '@/components/Layout/Layout.vue'
 
 export default {
   name: 'Help',
@@ -70,16 +70,17 @@ export default {
     this.checkBackend()
   },
   async mounted() {
-    AmplifyEventBus.$on('chatResponse', async (response) => {
-      var botCtr = document.getElementById('chatBot');
-      botCtr.scrollTop = botCtr.scrollHeight;
-      if (response.responseCard && response.responseCard.genericAttachments) {
-        this.responseCards = response.responseCard.genericAttachments
-      }
-      else {
-        this.responseCards = null
-      }
-    })
+    // FIXME Migrate chatbot code
+    // AmplifyEventBus.$on('chatResponse', async (response) => {
+    //   var botCtr = document.getElementById('chatBot');
+    //   botCtr.scrollTop = botCtr.scrollHeight;
+    //   if (response.responseCard && response.responseCard.genericAttachments) {
+    //     this.responseCards = response.responseCard.genericAttachments
+    //   }
+    //   else {
+    //     this.responseCards = null
+    //   }
+    // })
   },
   methods: {
     async checkBackend() {
@@ -102,7 +103,7 @@ export default {
   computed: {
     chatbotConfig: function () {
       let config = {
-        bot: process.env.VUE_APP_BOT_NAME,
+        bot: import.meta.env.VITE_BOT_NAME,
         clearComplete: false,
         botTitle: "Retail Demo Store Support",
         conversationModeOn: false,
