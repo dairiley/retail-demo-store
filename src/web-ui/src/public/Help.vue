@@ -15,12 +15,12 @@
           </p>
           <div class="row">
             <div class="col-sm">
-              <amplify-chatbot v-bind:chatbotConfig="chatbotConfig" id="chatBot"></amplify-chatbot>
+              <Chatbot @chatResponse="handleChatResponse" v-bind:chatbotConfig="chatbotConfig" id="chatBot"></Chatbot>
             </div>
             <div class="col-sm">
               <div class="card-deck">
                 <div class="card card-recommend mb-3" v-for="card in responseCards" v-bind:key="card.title">
-                  <img class="card-img-top" :src="card.imageUrl" :alt="card.title">
+                  <img class="card-img-top" :src="card.imageUrl" :alt="card.title" />
                   <div class="card-body">
                     <h6 class="card-title">{{ card.title }}</h6>
                     <p class="card-text"><small>{{ card.subTitle }}</small></p>
@@ -52,11 +52,12 @@ import { Interactions } from 'aws-amplify';
 // import { AmplifyEventBus } from 'aws-amplify-vue';
 
 import Layout from '@/components/Layout/Layout.vue'
+import Chatbot from '@/components/Chatbot.vue'
 
 export default {
   name: 'Help',
   components: {
-    Layout,
+    Layout,Chatbot
   },
   data () {
     return {
@@ -68,19 +69,6 @@ export default {
   },
   created () {
     this.checkBackend()
-  },
-  async mounted() {
-    // FIXME Migrate chatbot code
-    // AmplifyEventBus.$on('chatResponse', async (response) => {
-    //   var botCtr = document.getElementById('chatBot');
-    //   botCtr.scrollTop = botCtr.scrollHeight;
-    //   if (response.responseCard && response.responseCard.genericAttachments) {
-    //     this.responseCards = response.responseCard.genericAttachments
-    //   }
-    //   else {
-    //     this.responseCards = null
-    //   }
-    // })
   },
   methods: {
     async checkBackend() {
@@ -97,6 +85,16 @@ export default {
       }
       finally {
         this.checkingBackend = false
+      }
+    },
+    async handleChatResponse(response) {
+      var botCtr = document.getElementById('chatBot');
+      botCtr.scrollTop = botCtr.scrollHeight;
+      if (response.responseCard && response.responseCard.genericAttachments) {
+        this.responseCards = response.responseCard.genericAttachments
+      }
+      else {
+        this.responseCards = null
       }
     }
   },
