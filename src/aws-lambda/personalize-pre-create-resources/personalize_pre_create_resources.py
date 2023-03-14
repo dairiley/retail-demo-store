@@ -106,6 +106,10 @@ items_schema = {
         {
             "name": "PROMOTED",
             "type": "string"
+        },
+        {
+            "name": "IMAGE_LABELS",
+            "type": "string"
         }
     ],
     "version": "1.0"

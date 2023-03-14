@@ -94,6 +94,16 @@ def generate_user_items(out_users_filename, out_items_filename, in_users_filenam
     with open(in_products_filename, 'r') as f:
         products = yaml.safe_load(f)
 
+    # Personalize only accepts multiple values when separated by | so we have to reformat it
+    for p in range(len(products)):
+        if products[p]['image_labels']:
+            names = []
+            for label in products[p]['image_labels']:
+                # Only include labels with high confidence
+                if label['confidence'] > 75:
+                    names.append(label['name'])
+            products[p]['image_labels'] = '|'.join(names)
+
     products_df = pd.DataFrame(products)
 
     # User info is stored in the repository - it was automatically generated
@@ -104,14 +114,15 @@ def generate_user_items(out_users_filename, out_items_filename, in_users_filenam
 
     users_df = pd.DataFrame(users)
 
-    products_dataset_df = products_df[['id','price','category','style','description','gender_affinity','promoted']]
+    products_dataset_df = products_df[['id','price','category','style','description','gender_affinity','promoted', 'image_labels']]
     products_dataset_df = products_dataset_df.rename(columns = {'id':'ITEM_ID',
                                                             'price':'PRICE',
                                                             'category':'CATEGORY_L1',
                                                             'style':'CATEGORY_L2',
                                                             'description':'PRODUCT_DESCRIPTION',
                                                             'gender_affinity':'GENDER',
-                                                            'promoted': 'PROMOTED'})
+                                                            'promoted': 'PROMOTED',
+                                                            'image_labels':'IMAGE_LABELS'})
     # Since GENDER column requires a value for all rows, default all nulls to "Any"
     products_dataset_df['GENDER'].fillna(GENDER_ANY, inplace = True)
     products_dataset_df.loc[products_dataset_df['PROMOTED'] == True, 'PROMOTED'] = 'Y'

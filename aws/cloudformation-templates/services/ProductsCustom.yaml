@@ -15,6 +15,9 @@ Parameters:
   ProductsTable:
     Type: String
 
+  ProductsTableStreamArn:
+    Type: String
+
   CategoriesTable:
     Type: String
 
@@ -65,6 +68,45 @@ Resources:
                   - logs:CreateLogStream
                 Resource: "arn:aws:logs:*:*:*"
 
+  DyanmoDBNeptuneSyncRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/NeptuneFullAccess
+        - arn:aws:iam::aws:policy/AWSLambdaInvocation-DynamoDB
+      Policies:
+        - PolicyName: DynamoDB
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:BatchGetItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:ConditionCheckItem
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProductsTable}'
+        - PolicyName: CloudWatch
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:PutLogEvents
+                  - logs:CreateLogStream
+                Resource: "arn:aws:logs:*:*:*"
+
   LoadDataLambdaFunction:
     Type: AWS::Lambda::Function
     Properties:
@@ -76,6 +118,61 @@ Resources:
       Code:
         S3Bucket: !Ref ResourceBucket
         S3Key: !Sub '${ResourceBucketRelativePath}aws-lambda/retaildemostore-lambda-load-products.zip'
+
+  NeptuneCluster:
+    Type: AWS::Neptune::DBCluster
+    Properties:
+      AvailabilityZones:
+        - !Select [ 0, !GetAZs ]
+      DBClusterIdentifier: retail-demo-store-neptune-cluster
+      EngineVersion: 1.1.1.0
+
+  NeptuneDBInstance:
+    Type: AWS::Neptune::DBInstance
+    Properties:
+      DBClusterIdentifier: !Ref NeptuneCluster
+      DBInstanceClass: db.t3.medium
+
+  LoadNeptuneFromDDBProducts:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: 'Retail Demo Store deployment utility function that exports all products from DynamoDB products table to Neptune DB instance'
+      Handler: load-neptune-from-ddb-products.lambda_handler
+      Role: !GetAtt DyanmoDBNeptuneSyncRole.Arn
+      Runtime: python3.8
+      Timeout: 3
+      Code:
+        S3Bucket: !Ref ResourceBucket
+        S3Key: !Sub '${ResourceBucketRelativePath}aws-lambda/load-neptune-from-ddb-products.zip'
+      Environment:
+        Variables:
+          dynamodb_table: !Ref ProductsTable
+          neptune_endpoint: !Ref NeptuneDBInstance
+
+  DynamoDBNeptuneSync:
+    Type: AWS::Lambda::Function
+    Properties:
+      Description: 'Retail Demo Store function to sync Neptune with DynamoDB after product records change'
+      Handler: dynamodb-neptune-sync.lambda_handler
+      Role: !GetAtt DyanmoDBNeptuneSyncRole.Arn
+      Runtime: python3.8
+      Timeout: 3
+      Code:
+        S3Bucket: !Ref ResourceBucket
+        S3Key: !Sub '${ResourceBucketRelativePath}aws-lambda/dynamodb-neptune-sync.zip'
+      Environment:
+        Variables:
+          neptune_endpoint: !Ref NeptuneDBInstance
+    DependsOn: CustomLoadNeptuneFromDDB
+
+  DynamoDBTableStream:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      BatchSize: 100
+      Enabled: True
+      EventSourceArn: !Ref ProductsTableStreamArn
+      FunctionName: !GetAtt DynamoDBNeptuneSync.Arn
+      StartingPosition: LATEST
 
   CustomLoadDataProducts:
     Type: Custom::CustomLoadData
@@ -94,6 +191,12 @@ Resources:
       File: !Join [ '', [ !Ref ResourceBucketRelativePath, 'data/categories.yaml' ] ]
       Table: !Ref CategoriesTable
       Datatype: "categories"
+
+  CustomLoadNeptuneFromDDB:
+    Type: Custom::CustomLoadData
+    Properties:
+      ServiceToken: !GetAtt LoadNeptuneFromDDBProducts.Arn
+    DependsOn: LoadDataLambdaFunction
 
 Outputs:
   LoadDataLambdaFunction:
