@@ -54,6 +54,18 @@ Parameters:
   EvidentlyProjectName:
     Type: String
 
+  NeptuneHostName:
+    Type: String
+
+  WebUIBucketName:
+    Type: String
+
+  ProductsTable:
+    Type: String
+
+  CategoriesTable:
+    Type: String
+
 Conditions:
   UseDefaultGitHubUser: !Equals
       - !Ref GitHubUser
@@ -71,6 +83,30 @@ Resources:
         RepositoryUrl:  !Sub
         - 'https://github.com/${User}/retail-demo-store.git'
         - { User: !If [ UseDefaultGitHubUser, 'aws-samples', !Ref GitHubUser ] }
+  NoteBookLifeCycleConfig:
+    Type: AWS::SageMaker::NotebookInstanceLifecycleConfig
+    Properties:
+      OnStart:
+        - Content:
+            "Fn::Base64": !Sub |
+              #!/bin/bash
+              
+              set -e
+              
+              sudo -u ec2-user -i <<'EOF'
+              
+              echo "export GRAPH_NOTEBOOK_AUTH_MODE=DEFAULT" >> ~/.bashrc
+              echo "export GRAPH_NOTEBOOK_HOST=${NeptuneHostName}" >> ~/.bashrc
+              echo "export GRAPH_NOTEBOOK_PORT=8182" >> ~/.bashrc
+              echo "export NEPTUNE_LOAD_FROM_S3_ROLE_ARN=" >> ~/.bashrc
+              echo "export AWS_REGION=${AWS::Region}" >> ~/.bashrc
+
+              aws s3 cp s3://aws-neptune-notebook/graph_notebook.tar.gz /tmp/graph_notebook.tar.gz
+              rm -rf /tmp/graph_notebook
+              tar -zxvf /tmp/graph_notebook.tar.gz -C /tmp
+              /tmp/graph_notebook/install.sh
+
+              EOF
   NotebookInstance:
     Type: AWS::SageMaker::NotebookInstance
     Properties:
@@ -82,6 +118,7 @@ Resources:
       SecurityGroupIds:
         - !Ref SecurityGroup
       DefaultCodeRepository: !Sub '${Uid}-demo-store'
+      LifecycleConfigName: !GetAtt NoteBookLifeCycleConfig.NotebookInstanceLifecycleConfigName
       Tags:
         -
           Key: "Uid"
@@ -376,17 +413,83 @@ Resources:
                   - iam:PassRole
                 Resource:
                   - !Sub 'arn:aws:iam::${AWS::AccountId}:role/*'
-              - Effect: Allow
+              - 
+                Effect: Allow
                 Action:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource:
                   - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/LocationNotebookEventHandler:log-stream:*'
                   - !Sub 'arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/LocationNotebookEventHandler'
-              -
+              - 
                 Effect: Allow
                 Action:
                   - logs:CreateLogGroup
+                Resource: '*'
+        - 
+          PolicyName: "9-GraphDatabase"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              ################################################
+              # Access Neptune instances (For Graph database workshop)
+              ################################################
+              - 
+                Effect: Allow
+                Action:
+                  - neptune-db:connect
+                Resource: '*'
+              ################################################
+              # Access Web UI images (For Graph database workshop)
+              ################################################
+              - 
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:GetBucketVersioning
+                  - s3:GetBucketPolicy
+                Resource:
+                  - !Sub arn:aws:s3:::${WebUIBucketName}/*
+                  - !Sub arn:aws:s3:::${WebUIBucketName}
+              ################################################
+              # Access to DynamoDB (For Graph database workshop)
+              ################################################
+              - Effect: Allow
+                Action:
+                  - dynamodb:BatchGetItem
+                  - dynamodb:BatchWriteItem
+                  - dynamodb:ConditionCheckItem
+                  - dynamodb:PutItem
+                  - dynamodb:DescribeTable
+                  - dynamodb:DeleteItem
+                  - dynamodb:GetItem
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:UpdateItem
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProductsTable}'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${CategoriesTable}'
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetShardIterator
+                  - dynamodb:Scan
+                  - dynamodb:Query
+                  - dynamodb:GetRecords
+                Resource:
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${ProductsTable}/index/*'
+                  - !Sub 'arn:aws:dynamodb:${AWS::Region}:${AWS::AccountId}:table/${CategoriesTable}/index/*'
+              ################################################
+              # Access to Rekognition (For Graph database workshop)
+              ################################################
+              - Effect: Allow
+                Action:
+                  - rekognition:Describe*
+                  - rekognition:DetectLabels
+                  - rekognition:GetLabelDetection
+                  - rekognition:DetectCustomLabels
+                  - rekognition:ListDatasetLabels
                 Resource: '*'
 
 Outputs:
