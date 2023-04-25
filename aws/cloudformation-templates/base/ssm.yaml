@@ -8,6 +8,9 @@ Parameters:
   StackBucketName:
     Type: String
 
+  ProductsTable:
+    Type: String
+
   ExperimentStrategyTableName:
     Type: String
 
@@ -88,6 +91,14 @@ Resources:
       Type: "String"
       Value: !Ref StackBucketName
       Description: "Retail Demo Store Stack Bucket Parameter"
+
+  ParameterStackProductsTable:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "retaildemostore-stack-products-table"
+      Type: "String"
+      Value: !Ref ProductsTable
+      Description: "Retail Demo Store Stack Products DDB Table Parameter"
 
   ParameterPersonalizeRelatedItemsArn:
     Type: "AWS::SSM::Parameter"
