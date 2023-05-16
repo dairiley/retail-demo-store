@@ -491,6 +491,14 @@ Resources:
                   - rekognition:DetectCustomLabels
                   - rekognition:ListDatasetLabels
                 Resource: '*'
+              - Effect: Allow
+                Action:
+                  - batch:DescribeJobs
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - ec2:CreateKeyPair
+                Resource: '*'
 
 Outputs:
   NotebookInstanceId:

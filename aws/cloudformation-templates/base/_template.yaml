@@ -267,7 +267,10 @@ Resources:
       TemplateURL: !Sub https://s3.amazonaws.com/${ResourceBucket}/${ResourceBucketRelativePath}cloudformation-templates/base/ssm.yaml
       Parameters:
         StackBucketName: !GetAtt Buckets.Outputs.StackBucketName
+        WebUIBucketName: !GetAtt CloudFront.Outputs.WebUIBucketName
         ExperimentStrategyTableName: !GetAtt Tables.Outputs.ExperimentStrategyTable
+        ProductsTable: !GetAtt Tables.Outputs.ProductsTable
+        Subnets: !GetAtt VPC.Outputs.Subnets
         AmplitudeApiKey: !Ref AmplitudeApiKey
         OptimizelySdkKey: !Ref OptimizelySdkKey
         SegmentWriteKey: !Ref SegmentWriteKey

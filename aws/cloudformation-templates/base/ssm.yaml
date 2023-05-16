@@ -17,6 +17,9 @@ Parameters:
   ExperimentStrategyTableName:
     Type: String
 
+  Subnets:
+    Type: String
+
   AmplitudeApiKey:
     Type: String
     Description: Amplitude API key for product analytics and A/B testing results (optional).
@@ -110,6 +113,14 @@ Resources:
       Type: "String"
       Value: !Ref WebUIBucketName
       Description: "Retail Demo Store Stack Web UI Bucket Parameter"
+
+  ParameterStackSubnets:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "retaildemostore-stack-subnets"
+      Type: "String"
+      Value: !Ref Subnets
+      Description: "Retail Demo Store Service Subnets"
 
   ParameterPersonalizeRelatedItemsArn:
     Type: "AWS::SSM::Parameter"
