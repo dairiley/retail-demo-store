@@ -11,6 +11,9 @@ Parameters:
   ProductsTable:
     Type: String
 
+  WebUIBucketName:
+    Type: String
+
   ExperimentStrategyTableName:
     Type: String
 
@@ -99,6 +102,14 @@ Resources:
       Type: "String"
       Value: !Ref ProductsTable
       Description: "Retail Demo Store Stack Products DDB Table Parameter"
+
+  ParameterStackWebUIBucketName:
+    Type: "AWS::SSM::Parameter"
+    Properties:
+      Name: "retaildemostore-stack-web-ui-bucket"
+      Type: "String"
+      Value: !Ref WebUIBucketName
+      Description: "Retail Demo Store Stack Web UI Bucket Parameter"
 
   ParameterPersonalizeRelatedItemsArn:
     Type: "AWS::SSM::Parameter"
@@ -301,6 +312,14 @@ Outputs:
   ParameterStackBucketName:
     Description: Stack Bucket Name Parameter
     Value: !Ref ParameterStackBucketName
+
+  ParameterStackProductsTable:
+    Description: Stack DDB Products Table Parameter
+    Value: !Ref ParameterStackProductsTable
+
+  ParameterStackWebUIBucketName:
+    Description: Stack Web UI Bucket Name Parameter
+    Value: !Ref WebUIBucketName
 
   ParameterPersonalizeRelatedItemsArn:
     Description: Also Viewed Recommender Arn Parameter
