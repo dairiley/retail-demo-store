@@ -270,7 +270,10 @@ Resources:
         WebUIBucketName: !GetAtt CloudFront.Outputs.WebUIBucketName
         ExperimentStrategyTableName: !GetAtt Tables.Outputs.ExperimentStrategyTable
         ProductsTable: !GetAtt Tables.Outputs.ProductsTable
+        VpcId: !GetAtt VPC.Outputs.VpcId
         Subnets: !GetAtt VPC.Outputs.Subnets
+        OpenSearchDomainEndpoint: !GetAtt OpenSearch.Outputs.DomainEndpoint
+        OpenSearchDomainSecurityGroup: !GetAtt OpenSearch.Outputs.SecurityGroupId
         AmplitudeApiKey: !Ref AmplitudeApiKey
         OptimizelySdkKey: !Ref OptimizelySdkKey
         SegmentWriteKey: !Ref SegmentWriteKey
