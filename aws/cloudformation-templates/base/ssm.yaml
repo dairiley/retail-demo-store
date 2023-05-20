@@ -23,9 +23,6 @@ Parameters:
   VpcId:
     Type: String
 
-  OpenSearchDomainEndpoint:
-    Type: String
-
   OpenSearchDomainSecurityGroup:
     Type: String
 
@@ -138,14 +135,6 @@ Resources:
       Type: "String"
       Value: !Ref VpcId
       Description: "Retail Demo Store Vpc Id"
-
-  ParameterStackOpenSearchDomainEndpoint:
-    Type: "AWS::SSM::Parameter"
-    Properties:
-      Name: "retaildemostore-stack-opensearch-domain-endpoint"
-      Type: "String"
-      Value: !Ref OpenSearchDomainEndpoint
-      Description: "Retail Demo Store OpenSearch Domain Endpoint"
 
   ParameterStackOpenSearchSecurityGroup:
     Type: "AWS::SSM::Parameter"
