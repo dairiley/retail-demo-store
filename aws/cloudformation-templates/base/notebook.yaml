@@ -442,7 +442,7 @@ Resources:
                   - rds:DeleteDBCluster
                   - rds:DeleteDBSubnetGroup
                   - rds:DescribeDBClusters
-                  - rds:DeleteDBParameterGroup
+                  - rds:DeleteDBClusterParameterGroup
                 Resource: '*'
               - Effect: Allow
                 Action:
@@ -450,6 +450,7 @@ Resources:
                   - ec2:CreateSecurityGroup
                   - ec2:AuthorizeSecurityGroupIngress
                   - ec2:DeleteSecurityGroup
+                  - ec2:DeleteKeyPair
                 Resource: '*'
               - Effect: Allow
                 Action:
