@@ -1,0 +1,108 @@
+{
+  "app": "python3 app.py",
+  "context": {
+    "stack_name": "retail-demo-store",
+    "retail_demo_store_deployment_configuration": {
+      "_resource_bucket_description": "S3 bucket name where the Retail Demo Store deployment resources are staged (product images, nested CloudFormation templates, source code snapshot, notebooks, deployment Lambda code, etc).",
+      "resource_bucket": "test",
+      "_resource_bucket_relative_path_description": "Optional path in the Deployment Resources Staging bucket where the deployment resources are stored (e.g. path/path2/). Leave blank if resources are at the root of the Staging Resource Bucket. If specified, MUST end with '/'.",
+      "resource_bucket_relative_path": "",
+      "_create_opensearch_service_role_description": "If your account already has an IAM Role named 'AWSServiceRoleForAmazonOpenSearchService', select 'false. Otherwise, select 'true' and one will be created. ",
+      "create_opensearch_service_role": true
+    },
+    "source_deployment_approach": {
+      "_source_deployment_type_description": "The Retail Demo Store deployment includes a CodePipeline configuration that will build and deploy Retail Demo Store microservices to ECS when a change is detected in the source repository. The source repository for CodePipeline can be configured to use your personal GitHub repository or CodeCommit. Use GitHub if you're actively developing against Retail Demo Store in your own fork. CodeCommit is useful when you just want to get up and going quickly for a demo or evaluation or for workshop scenarios, such as Event Engine, where you want attendees to have their own source repositories provisioned.",
+      "source_deployment_type": "GitHub Repository",
+      "github_repository": {
+        "_github_repo_description": "Name of Retail Demo Store GitHub repository. Will almost always be 'retail-demo-store'.",
+        "github_repo": "retail-demo-store",
+        "_github_branch_description": "Name of GitHub branch within the GitHub repository to link to this Retail Demo Store deployment.",
+        "github_branch": "master",
+        "_github_user_description": "If you are linking and deploying from a fork of the Retail Demo Store repository, enter your GitHub username. Otherwise, use the default of 'aws-samples' to link to the upstream repository.",
+        "github_user": "aws-samples",
+        "_github_token_description": "If you are linking and deploying from a private fork of the Retail Demo Store repository in your GitHub account, a GitHub Personal Access Token is required. Otherwise, leave blank. Be sure that your token has the \"repo\", \"repo:status\", and \"admin:repo_hook\" permission scopes.",
+        "github_token": ""
+      }
+    },
+    "auto_build_resources": {
+      "_pre_index_opensearch_description": "Automatically index the Retail Demo Store products in OpenSearch. Otherwise, select 'false' if you would prefer to complete this process yourself by stepping through the Search workshop included in this deployment as a Jupyter notebook in SageMaker.",
+      "pre_index_opensearch": false,
+      "_pre_create_personalize_resources_description": "Automatically trigger the background creation of Amazon Personalize resources such as solutions, campaigns, and recommenders at deployment time. Otherwise, select 'false' if you would prefer to complete this process yourself by stepping through the Personalization workshops included in this deployment. Note that the background create process runs after deployment finishes and can take 2+ hours to complete.",
+      "pre_create_personalize_resources": false,
+      "_pre_create_pinpoint_workshop_description": "Automatically configure Pinpoint with messaging templates, segments, and campaigns. Otherwise, select 'false' if you would prefer to complete this process yourself by stepping through the Messaging workshop included in your deployment as a Jupyter notebook in SageMaker. Note that this option is dependent on Auto-Build Personalize Campaigns being enabled AND completed.",
+      "pre_create_pinpoint_workshop": false,
+      "_pinpoint_email_from_address_description": "Email address to use as Reply-To when sending emails from Pinpoint. This parameter is required when 'pre_create_pinpoint_workshop' is set to 'true'.",
+      "pinpoint_email_from_address": "",
+      "_pinpoint_email_from_name_description": "Name to use with Reply-To email address when sending emails from Pinpoint. This parameter only applies when 'pre_create_pinpoint_workshop' is set to 'true'.",
+      "pinpoint_email_from_name": "AWS Retail Demo Store",
+      "_pinpoint_sms_long_code_description": " dedicated long code (i.e. a phone number) obtained for Amazon Pinpoint to send and receive messages at. Be sure to enable two way SMS for this long code using Pinpoint. Follow steps 2 and 3 in the Messaging workshop(https://github.com/aws-samples/retail-demo-store/blob/master/workshop/4-Messaging/4.1-Pinpoint.ipynb) to get a long code. This parameter only applies when 'pre_create_pinpoint_workshop' is set to 'true'. Enter the number along with the country code and without any spaces or brackets. For Example: enter \"+1XXXXXXXXXX\" for a long code based in the United States.",
+      "pinpoint_sms_long_code": ""
+    },
+    "_use_default_ivs_streams_description": "Whether to create and use the default Interactive Video Service (IVS) streams hosted by AWS. If 'false', then new IVS streams will be created and streams created based on any videos placed in the CloudFormation resource bucket. IMPORTANT: IVS is currently only supported in the N. Virginia (us-east-1), Oregon (us-west-2), and Ireland (eu-west-1) regions. If deploying to an unsupported region, be sure to select 'true' for this parameter.",
+    "use_default_ivs_streams": false,
+    "create_location_and_personalized_offers_resources": {
+      "_deploy_location_services_description": "Deploy any Location Resources.",
+      "deploy_location_services": true,
+      "_deploy_personalized_offers_campaign_description": "Deploy personalized offers and pickup notices using Location Services geofencing.",
+      "deploy_personalized_offers_campaign": true
+    },
+    "amazon_pay": {
+      "_amazon_pay_store_id_description": "The Store ID of the Amazon Pay sandbox account being used. For more information see \"Amazon Pay Integration\" under the README file in the amazon-pay-signing subfolder in the repository.",
+      "amazon_pay_store_id": "",
+      "_amazon_pay_merchant_id_description": "Merchant ID of the Amazon Pay sandbox account being used. For more information see \"Amazon Pay Integration\" under the README file in the amazon-pay-signing subfolder in the repository.",
+      "amazon_pay_merchant_id": "",
+      "_amazon_pay_public_key_id_description": "Public key ID associated with Amazon Pay sandbox account.",
+      "amazon_pay_public_key_id": "",
+      "_amazon_pay_private_key_description": "The private key to be used for signing Amazon Pay requests for a sandbox account. You will need to copy the whole contents of the .pem file into this parameter. For more information see \"Amazon Pay Integration\" under the README file in the amazon-pay-signing subfolder in the repository.",
+      "amazon_pay_private_key": ""
+    },
+    "alexa_convenience_store_demo": {
+      "_alexa_skill_id_description": "This Alexa skill with this SkillId will be allowed to invoke the back-end skill Lambda deployed as a part of this CloudFormation stack. The back-end Lambda supports the C-Store demo allowing hands-free location based searching with Location Service (if enabled), integration with the Retail Demo Store back-end, online recommendations, and checkout.",
+      "alexa_skill_id": "",
+      "_alexa_default_sandbox_email_description": "Fallback email address to receive order confirmation emails. This will be used until the steps are followed to enable Alexa to authenticate with Cognito, after which it will be able to retrieve the user's details.",
+      "alexa_default_sandbox_email": ""
+    },
+    "optional_integrations": {
+      "_amplitude_api_key_description": "Amplitude API key for integrated product analytics and A/B testing results (optional).",
+      "amplitude_api_key": "",
+      "_optmizely_sdk_key_description": "Optimizely SDK key for experimentation (optional).",
+      "optimizely_sdk_key": "",
+      "_include_segment_dependencies_description": "Whether to deploy the resources required for the Segment workshops.",
+      "include_segment_dependencies": false,
+      "_segment_write_key_description": "Segment write key for real-time data collection (optional). Be sure the Segment resources are deployed (above) if you specify a write key.",
+      "segment_write_key": "",
+      "_include_mparticle_dependencies_description": "Whether to deploy the resources required for the mParticle workshops.",
+      "mparticle_dependencies": false,
+      "_mparticle_org_id_description": "mParticle organization ID from your workspace.",
+      "mparticle_org_id": "",
+      "_mparticle_api_key_description": "mParticle event API Key for your mParticle tenant.",
+      "mparticle_api_key": "",
+      "_mparticle_secret_key_description": "mParticle event API secret key coupled with your API key.",
+      "mparticle_secret_key": "",
+      "_mparticle_s2s_api_key_description": "mParticle server to server API Key for your mParticle tenant.",
+      "mparticle_s2s_api_key": "",
+      "_mparticle_s2s_secret_key_description": "mParticle server to server secret key coupled with your API key.",
+      "mparticle_s2s_secret_key": "",
+      "_google_analytics_measurement_id_description": "Google Analytics Measurement Identifier (optional). If specified, the Google Analytics integration in the web application is activated and events are sent to the data stream associated with the Measurement ID.",
+      "google_analytics_measurement_id": ""
+    },
+    "fenix_commerce_edd_integration": {
+      "_fenix_zip_detect_url_description":"Fenix Commerce Zipcode Detect URL.",
+      "fenix_zip_detect_url": "https://ipapi.co/json?key=cKGC3jQbSIoXYmI2KtXObugsKfosD9Yr0HnkHhPUu1SM2wQhE0",
+      "_fenix_tenant_id_description": "Fenix Commerce Demo Env TenantID.",
+      "fenix_tenant_id": "",
+      "_fenix_edd_endpoint_description": "Fenix Commerce Estimated Delivery Date Endpoint URL.",
+      "fenix_edd_endpoint": "https://platform.api.fenixcommerce.com/awsretaildemostore/fenixdelest/api/v2/deliveryestimates",
+      "_fenix_monetary_value_description": "Fenix Commerce Default monetary value to control free shipping above $100.",
+      "fenix_monetary_value": "100",
+      "_fenix_enabled_pdp_description": "Fenix Commerce Flag to enable display of Estimated Delivery Date (EDD) on PDP. OFF/FALSE by default.",
+      "fenix_enabled_pdp": false,
+      "_fenix_enabled_cart_description": "Fenix Commerce Flag to enable EDD on CART Page.",
+      "fenix_enabled_cart": false,
+      "_fenix_enabled_checkout_description": "Fenix Commerce Flag to enable EDD on checkout Page.",
+      "fenix_enabled_checkout": false,
+      "_fenix_xapi_key_description": "Fenix Commerce Demo Env x-api-key.",
+      "fenix_xapi_key": ""
+    }
+  }
+}
