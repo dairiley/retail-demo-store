@@ -10,9 +10,10 @@ from alexa import AlexaStack
 from deployment_support import DeploymentSupportStack
 from segment import SegmentStack
 from mparticle import MParticleStack
+from apigateway import ApiGatewayStack
 from constructs import Construct
 from cleanup_bucket import CleanupBucketStack
-from aws_cdk import CfnOutput, Stack, Aws
+from aws_cdk import CfnOutput, Stack, Aws, CfnParameter
 
 class RetailDemoStoreStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -23,15 +24,21 @@ class RetailDemoStoreStack(Stack):
         Set custom values before deployment in cdk.json
         """
 
-        stack_name = self.node.try_get_context("stack_name")
+        stack_name = CfnParameter(self, "Stack Name", default=self.node.try_get_context("stack_name")).value_as_string
 
         deployment_config = self.node.try_get_context("retail_demo_store_deployment_configuration")
-        resource_bucket = deployment_config["resource_bucket"]
+        resource_bucket = CfnParameter(self, "ResourceBucket",
+                                       default=deployment_config["resource_bucket"],
+                                       description=deployment_config["_resource_bucket_description"]).value_as_string
+        resource_bucket_relative_path = deployment_config["resource_bucket_relative_path"]
         resource_bucket_relative_path = deployment_config["resource_bucket_relative_path"]
         create_opensearch_service_role = deployment_config["create_opensearch_service_role"]
 
         source_deployment_approach = self.node.try_get_context("source_deployment_approach")
-        source_deployment_type = source_deployment_approach["source_deployment_type"]
+        source_deployment_type = CfnParameter(self, "SourceDeploymentType",
+                                       default=source_deployment_approach["source_deployment_type"],
+                                       description=source_deployment_approach["_source_deployment_type_description"]).value_as_string
+
         github_repository = source_deployment_approach["github_repository"]
         github_branch = github_repository["github_branch"]
         github_user = github_repository["github_user"] if source_deployment_type == "GitHub Repository" else False
@@ -117,6 +124,7 @@ class RetailDemoStoreStack(Stack):
             "fenix_xapi_key": fenix_xapi_key}
         base = BaseStack(self, "Base",
                          props=base_props)
+        base.add_dependency(cleanup_bucket)
 
         amazonpay = False
         if "" not in [amazon_pay_merchant_id, amazon_pay_store_id, amazon_pay_public_key_id, amazon_pay_private_key]:
@@ -126,10 +134,11 @@ class RetailDemoStoreStack(Stack):
                 "amazon_pay_public_key_id": amazon_pay_public_key_id,
                 "amazon_pay_store_id": amazon_pay_store_id,
                 "amazon_pay_private_key": amazon_pay_private_key,
-                "web_url": f"http://{base.distribution.distribution.distribution_domain_name}"
+                "web_url": f"https://{base.distribution.distribution.distribution_domain_name}"
             }
             amazonpay = AmazonPayStack(self, "AmazonPay",
                                        props=amazonpay_props)
+            amazonpay.add_dependency(base)
 
         services_props = {
             "resource_bucket": resource_bucket,
@@ -140,11 +149,14 @@ class RetailDemoStoreStack(Stack):
             "github_user": github_user,
             "github_token": github_token,
             "user_pool_id": base.authentication.user_pool.ref,
-            "user_pool_client_id": base.authentication.user_pool_id_str,
+            "user_pool_client_id": base.authentication.user_pool_client.ref,
             "identity_pool_id": base.authentication.identity_pool.ref,
-            "subnet1": base.vpc.subnet1,
-            "subnet2": base.vpc.subnet2,
+            "subnet1": base.vpc.public_subnet_1,
+            "subnet2": base.vpc.public_subnet_2,
+            "private_subnet1": base.vpc.private_subnet_1,
+            "private_subnet2": base.vpc.public_subnet_2,
             "vpc": base.vpc.vpc,
+            "vpc_cidr": base.vpc.vpc_cidr,
             "cluster": base.ecs_cluster.cluster,
             "amazon_pay_signing_lambda": amazonpay.amazon_pay_signing_lambda if amazonpay else False,
             "service_discovery_namespace": base.service_discovery.name,
@@ -162,11 +174,11 @@ class RetailDemoStoreStack(Stack):
             "stack_name": stack_name,
             "evidently_project_name": base.evidently_project_name,
             "opensearch_domain_endpoint": base.opensearch.domain.attr_domain_endpoint,
-            "acm_cert_arn": ssm.StringParameter.from_string_parameter_attributes(self, "ACMCertValue", parameter_name=base.acm_cert.acm_parameter_name).string_value,
             "logging_bucket": base.buckets.logging_bucket
         }
         services = ServicesStack(self, "Services",
                                  props=services_props)
+        services.add_dependency(base)
 
         """
         Amazon Location Resources
@@ -183,16 +195,40 @@ class RetailDemoStoreStack(Stack):
             "carts_service_external_url": services.carts.load_balancer.service_url,
             "orders_service_external_url": services.orders.load_balancer.service_url,
             "offers_service_external_url": services.offers.load_balancer.service_url,
-            "web_url": f"http://{base.distribution.distribution.distribution_domain_name}"
+            "private_subnet1": base.vpc.private_subnet_1,
+            "private_subnet2": base.vpc.public_subnet_2,
+            "vpc": base.vpc.vpc,
+            "web_url": f"https://{base.distribution.distribution.distribution_domain_name}"
         }
         location_notification_endpoint = False
         if deploy_location_services:
             location = LocationStack(self, "Location",
                                      props=location_props)
+            location.add_dependency(services)
             location_notification_endpoint = location.location_notification_endpoint
 
-        location_resource_name = deploy_location_services if deploy_location_services else "NotDeployed"
+        location_resource_name = location.location_resource_name if deploy_location_services else "NotDeployed"
 
+        apigateway_props = {
+            "vpc": base.vpc.vpc,
+            "stack_name": stack_name,
+            "resource_bucket": resource_bucket,
+            "resource_bucket_relative_path": resource_bucket_relative_path,
+            "cidr": base.vpc.vpc_cidr,
+            "user_pool_id": base.authentication.user_pool.ref,
+            "user_pool_client_id": base.authentication.user_pool_client.ref,
+            "products_service_elb_listener": services.products.load_balancer.listener,
+            "users_service_elb_listener": services.products.load_balancer.listener,
+            "carts_service_elb_listener": services.carts.load_balancer.listener,
+            "orders_service_elb_listener": services.orders.load_balancer.listener,
+            "recommendations_service_elb_listener": services.recommendations.load_balancer.listener,
+            "videos_service_elb_listener": services.videos.load_balancer.listener,
+            "search_service_elb_listener": services.search.load_balancer.listener,
+            "location_service_elb_listener": services.location.load_balancer.listener,
+        }
+        apigateway = ApiGatewayStack(self, "ApiGateway",
+                                     props=apigateway_props)
+        apigateway.add_dependency(services)
 
         webui_props = {
             "resource_bucket": resource_bucket,
@@ -211,17 +247,9 @@ class RetailDemoStoreStack(Stack):
             "web_ui_bucket": base.distribution.webui_bucket,
             "web_ui_cdn": base.distribution.distribution.distribution_id,
             "user_pool_id": base.authentication.user_pool.ref,
-            "user_pool_client_id": base.authentication.user_pool_id_str,
+            "user_pool_client_id": base.authentication.user_pool_client.ref,
             "identity_pool_id": base.authentication.identity_pool.ref,
-            "products_service_external_url": services.products.load_balancer.service_url,
-            "users_service_external_url": services.users.load_balancer.service_url,
-            "carts_service_external_url": services.carts.load_balancer.service_url,
-            "orders_service_external_url": services.orders.load_balancer.service_url,
-            "recommendations_service_external_url": services.recommendations.load_balancer.service_url,
-            "search_service_external_url": services.search.load_balancer.service_url,
-            "offers_service_external_url": services.offers.load_balancer.service_url,
-            "videos_service_external_url": services.videos.load_balancer.service_url,
-            "location_service_external_url": services.location.load_balancer.service_url,
+            "api_gateway_url": apigateway.http_api.attr_api_endpoint,
             "location_notification_endpoint": location_notification_endpoint if location_notification_endpoint else "",
             "pinpoint_app_id": base.pinpoint.pinpoint.ref,
             "parameter_personalize_event_tracker_id": base.ssm.parameter_personalize_event_tracker_id.string_value,
@@ -241,8 +269,9 @@ class RetailDemoStoreStack(Stack):
             "cleanup_bucket_lambda_arn": cleanup_bucket.function.function_arn,
             "location_resource_name": location_resource_name
         }
-        WebUIPipelineStack(self, "WebUIPipeline",
-                           props=webui_props)
+        webui = WebUIPipelineStack(self, "WebUIPipeline",
+                                   props=webui_props)
+        webui.add_dependency(apigateway)
 
         swaggerui_props = {
             "resource_bucket": resource_bucket,
@@ -269,17 +298,21 @@ class RetailDemoStoreStack(Stack):
             "logging_bucket": base.buckets.logging_bucket,
             "cleanup_bucket_lambda_arn": cleanup_bucket.function.function_arn
         }
-        SwaggerUIPipelineStack(self, "SwaggerUIPipeline",
-                               props=swaggerui_props)
+        swaggerui = SwaggerUIPipelineStack(self, "SwaggerUIPipeline",
+                                           props=swaggerui_props)
+        swaggerui.add_dependency(services)
 
         """
         Lex personalization function
         """
         lex_props = {
-        "resource_bucket": resource_bucket,
-        "resource_bucket_relative_path": resource_bucket_relative_path,
-        "users_service_external_url": services.users.load_balancer.service_url,
-        "recommendations_service_external_url": services.recommendations.load_balancer.service_url
+            "resource_bucket": resource_bucket,
+            "resource_bucket_relative_path": resource_bucket_relative_path,
+            "private_subnet1": base.vpc.private_subnet_1,
+            "private_subnet2": base.vpc.public_subnet_2,
+            "vpc": base.vpc.vpc,
+            "users_service_external_url": services.users.load_balancer.service_url,
+            "recommendations_service_external_url": services.recommendations.load_balancer.service_url,
         }
         LexStack(self, "ChatbotFunctions",
                  props=lex_props)
@@ -296,18 +329,23 @@ class RetailDemoStoreStack(Stack):
                 "orders_service_external_url": services.orders.load_balancer.service_url,
                 "recommendations_service_external_url": services.recommendations.load_balancer.service_url,
                 "location_resource_name": location_resource_name,
+                "private_subnet1": base.vpc.private_subnet_1,
+                "private_subnet2": base.vpc.public_subnet_2,
+                "vpc": base.vpc.vpc,
                 "alexa_default_sandbox_email": alexa_default_sandbox_email
             }
             alexa = AlexaStack(self, "Alexa",
                                props=alexa_props)
+            alexa.add_dependency(services)
+            alexa.add_dependency(location)
 
             deployment_support_props = {
                 "resource_bucket": resource_bucket,
                 "resource_bucket_relative_path": resource_bucket_relative_path,
                 "pre_index_opensearch": pre_index_opensearch,
                 "pre_create_personalize_resources": pre_create_personalize_resources,
-                "subnet1": base.vpc.subnet1,
-                "subnet2": base.vpc.subnet2,
+                "subnet1": base.vpc.public_subnet_1,
+                "subnet2": base.vpc.public_subnet_2,
                 "opensearch_security_group": base.opensearch.security_group,
                 "opensearch_domain_arn": base.opensearch.domain.attr_arn,
                 "opensearch_domain_endpoint": base.opensearch.domain.attr_domain_endpoint,
@@ -328,9 +366,7 @@ class RetailDemoStoreStack(Stack):
             }
             deployment_support = DeploymentSupportStack(self, "DeploymentSupport",
                                                         props=deployment_support_props)
-            # Delay towards end of deployment so that ES domain and DNS changes become consistent
             deployment_support.add_dependency(services)
-            deployment_support.add_dependency(base)
 
             """
             Segment Lambda Functions and Roles
@@ -360,94 +396,91 @@ class RetailDemoStoreStack(Stack):
             Stack Outputs
             """
 
-            CfnOuput(self, "UserPoolId",
-                     description="Authentication Cognito User Pool Id.",
-                     value=base.authentication.user_pool.ref)
-
-            CfnOuput(self, "UserPoolClientId",
-                     description="Authentication Cognito User Pool Client Id.",
-                     value=base.authentication.user_pool_id_str)
-
-            CfnOuput(self, "IdentityPoolId",
-                     description="Authentication Cognito Identity Pool Id.",
-                     value=base.authentication.identity_pool.ref)
-
-            CfnOuput(self, "BucketStackBucketName",
-                     description="Stack Bucket Name.",
-                     value=base.buckets.stack_bucket.bucket_name)
-
-            CfnOuput(self, "NotebookInstanceId",
-                     description="Notebook Instance Id.",
-                     value=base.notebook.notebook.ref)
-
-            CfnOuput(self, "VpcId",
-                     description="VPC Id.",
-                     value=base.vpc.vpc.vpc_id)
-
-            CfnOuput(self, "Subnets",
-                     description="Service Subnets.",
-                     value=f"{base.vpc.subnet1.subnet_id}, {base.vpc.subnet2.subnet_id}")
-
-            CfnOuput(self, "ClusterName",
-                     description="ECS Cluster Name.",
-                     value=base.ecs_cluster.cluster.cluster_name)
-
-            CfnOuput(self, "WebURL",
-                     description="Retail Demo Store Web UI URL.",
-                     value=f"http://{base.distribution.distribution.distribution_domain_name}")
-
-            CfnOuput(self, "OpenSearchDomainEndpoint",
-                     description="OpenSearch Endpoint.",
-                     value=base.opensearch.domain.attr_domain_endpoint)
-
-            CfnOuput(self, "ParameterIVSVideoChannelMap",
-                     description="Retail Demo Store video file to IVS channel mapping parameter.",
-                     value=base.ssm.parameter_ivs_video_channel_map.string_value)
-
-            CfnOuput(self, "PinpointAppId",
-                     description="Pinpoint App Id.",
-                     value=base.pinpoint.pinpoint.ref)
-
-            CfnOuput(self, "AlexaSkillEndpointArn",
-                     description="Arn of AWS Lambda function that can be a back-end.",
-                     value=alexa.alexa_skill_function.function_arn)
-
-            CfnOuput(self, "ProductsServiceUrl",
-                     description="Products load balancer URL.",
-                     value=services.products.load_balancer.service_url)
-
-            CfnOuput(self, "UsersServiceUrl",
-                     description="Users load balancer URL.",
-                     value=services.users.load_balancer.service_url)
-
-            CfnOuput(self, "CartsServiceUrl",
-                     description="Carts load balancer URL.",
-                     value=services.carts.load_balancer.service_url)
-
-            CfnOuput(self, "OrdersServiceUrl",
-                     description="Orders load balancer URL.",
-                     value=services.orders.load_balancer.service_url)
-
-            CfnOuput(self, "LocationServiceUrl",
-                     description="Location load balancer URL.",
-                     value=services.location.load_balancer.service_url)
-
-            CfnOuput(self, "RecommendationsServiceUrl",
-                     description="Recommendations load balancer URL.",
-                     value=services.recommendations.load_balancer.service_url)
-
-            CfnOuput(self, "VideosServiceUrl",
-                     description="Videos load balancer URL.",
-                     value=services.videos.load_balancer.service_url)
-
-            CfnOuput(self, "OffersServiceUrl",
-                     description="Offers service load balancer URL.",
-                     value=services.offers.load_balancer.service_url)
-
-            CfnOuput(self, "EvidentlyProjectName",
-                     description="ARN for the CloudWatch Evidently project.",
-                     value=base.evidently_project_name)
-
-            CfnOuput(self, "ACMCertARN",
-                     description="ARN for selfsigned cert for ELB.",
-                     value=ssm.StringParameter.from_string_parameter_attributes(self, "ACMCertValue", parameter_name=base.acm_cert.acm_parameter_name).string_value)
+            # user_pool_output = CfnOutput(self, "UserPoolId",
+            #                              description="Authentication Cognito User Pool Id.",
+            #                              value=base.authentication.user_pool.ref)
+            # user_pool_output.add_dependency(base)
+            #
+            # CfnOutput(self, "UserPoolClientId",
+            #          description="Authentication Cognito User Pool Client Id.",
+            #          value=base.authentication.user_pool_client.ref)
+            #
+            # CfnOutput(self, "IdentityPoolId",
+            #          description="Authentication Cognito Identity Pool Id.",
+            #          value=base.authentication.identity_pool.ref)
+            #
+            # CfnOutput(self, "BucketStackBucketName",
+            #          description="Stack Bucket Name.",
+            #          value=base.buckets.stack_bucket.bucket_name)
+            #
+            # CfnOutput(self, "NotebookInstanceId",
+            #          description="Notebook Instance Id.",
+            #          value=base.notebook.notebook.ref)
+            #
+            # CfnOutput(self, "VpcId",
+            #          description="VPC Id.",
+            #          value=base.vpc.vpc.vpc_id)
+            #
+            # CfnOutput(self, "Subnets",
+            #          description="Service Subnets.",
+            #          value=f"{base.vpc.public_subnet_1.subnet_id}, {base.vpc.public_subnet_2.subnet_id}")
+            #
+            # CfnOutput(self, "ClusterName",
+            #          description="ECS Cluster Name.",
+            #          value=base.ecs_cluster.cluster.cluster_name)
+            #
+            # CfnOutput(self, "WebURL",
+            #          description="Retail Demo Store Web UI URL.",
+            #          value=f"http://{base.distribution.distribution.distribution_domain_name}")
+            #
+            # CfnOutput(self, "OpenSearchDomainEndpoint",
+            #          description="OpenSearch Endpoint.",
+            #          value=base.opensearch.domain.attr_domain_endpoint)
+            #
+            # CfnOutput(self, "ParameterIVSVideoChannelMap",
+            #          description="Retail Demo Store video file to IVS channel mapping parameter.",
+            #          value=base.ssm.parameter_ivs_video_channel_map.string_value)
+            #
+            # CfnOutput(self, "PinpointAppId",
+            #          description="Pinpoint App Id.",
+            #          value=base.pinpoint.pinpoint.ref)
+            #
+            # CfnOutput(self, "AlexaSkillEndpointArn",
+            #          description="Arn of AWS Lambda function that can be a back-end.",
+            #          value=alexa.alexa_skill_function.function_arn)
+            #
+            # CfnOutput(self, "ProductsServiceUrl",
+            #          description="Products load balancer URL.",
+            #          value=services.products.load_balancer.service_url)
+            #
+            # CfnOutput(self, "UsersServiceUrl",
+            #          description="Users load balancer URL.",
+            #          value=services.users.load_balancer.service_url)
+            #
+            # CfnOutput(self, "CartsServiceUrl",
+            #          description="Carts load balancer URL.",
+            #          value=services.carts.load_balancer.service_url)
+            #
+            # CfnOutput(self, "OrdersServiceUrl",
+            #          description="Orders load balancer URL.",
+            #          value=services.orders.load_balancer.service_url)
+            #
+            # CfnOutput(self, "LocationServiceUrl",
+            #          description="Location load balancer URL.",
+            #          value=services.location.load_balancer.service_url)
+            #
+            # CfnOutput(self, "RecommendationsServiceUrl",
+            #          description="Recommendations load balancer URL.",
+            #          value=services.recommendations.load_balancer.service_url)
+            #
+            # CfnOutput(self, "VideosServiceUrl",
+            #          description="Videos load balancer URL.",
+            #          value=services.videos.load_balancer.service_url)
+            #
+            # CfnOutput(self, "OffersServiceUrl",
+            #          description="Offers service load balancer URL.",
+            #          value=services.offers.load_balancer.service_url)
+            #
+            # CfnOutput(self, "EvidentlyProjectName",
+            #          description="ARN for the CloudWatch Evidently project.",
+            #          value=base.evidently_project_name)

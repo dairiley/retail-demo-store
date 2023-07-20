@@ -75,7 +75,7 @@ class NotebookStack(Stack):
                                             ],
                                             resources=[
                                                 props['stack_bucket_arn'],
-                                                props['resource_bucket']
+                                                f"arn:aws:s3:::{props['resource_bucket']}"
                                             ]
                                         ),
                                         iam.PolicyStatement(
@@ -252,7 +252,7 @@ class NotebookStack(Stack):
         self.notebook = sagemaker.CfnNotebookInstance(self, "NotebookInstance",
                                                       instance_type="ml.t3.medium",
                                                       role_arn=execution_role.role_arn,
-                                                      default_code_repository=f"{props['uid']}-demo-store"']',
+                                                      default_code_repository=f"{props['uid']}-demo-store"'',
                                                       platform_identifier="notebook-al2-v2",
                                                       security_group_ids=[security_group.security_group_id],
                                                       subnet_id=props['subnet1'].subnet_id,

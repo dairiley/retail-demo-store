@@ -17,6 +17,10 @@ class PersonalizeStack(Stack):
                     "s3:PutObject",
                     "s3:ListBucket"
                 ],
+                resources=[
+                    props['stack_bucket'].bucket_arn,
+                    f"{props['stack_bucket'].bucket_arn}/*"
+                ],
                 principals=[iam.ServicePrincipal("personalize.amazonaws.com")]
             )
         )
@@ -33,8 +37,10 @@ class PersonalizeStack(Stack):
                                                      "s3:PutObject"
                                                  ],
                                                  resources=[
-                                                     props['resource_bucket'],
-                                                     props['stack_bucket'].bucket_arn
+                                                     f"arn:aws:s3:::{props['resource_bucket']}",
+                                                     f"arn:aws:s3:::{props['resource_bucket']}/*",
+                                                     props['stack_bucket'].bucket_arn,
+                                                     f"{props['stack_bucket'].bucket_arn}/*"
                                                  ])]
                                              )
                                          })

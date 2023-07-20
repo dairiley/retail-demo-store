@@ -5,6 +5,7 @@ from aws_cdk import (
     aws_kinesis as kinesis,
     aws_iam as iam,
     aws_lambda as lambda_,
+    aws_ec2 as ec2,
     aws_s3 as s3
 )
 from constructs import Construct
@@ -34,7 +35,10 @@ class MParticleStack(Stack):
         mparticle_personalize_lambda_role = iam.Role(self, "mParticlePersonalizeLambdaExecutionRole",
                                                      assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
                                                      description="Execution role for the Lambda provided with the mParticle workshop",
-                                                     managed_policies=[iam.ManagedPolicy.from_managed_policy_arn("arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole")],
+                                                     managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, "mParticlePersonalizeLambdaExecutionRoleKinesisPolicy",
+                                                                                                                 managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaKinesisExecutionRole"),
+                                                                       iam.ManagedPolicy.from_managed_policy_arn(self, "mParticlePersonalizeLambdaExecutionRoleVPCAccess",
+                                                                                                                 managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole")],
                                                      inline_policies={
                                                          "root": iam.PolicyDocument(statements=[
                                                              iam.PolicyStatement(
@@ -64,5 +68,7 @@ class MParticleStack(Stack):
                          handler="mparticle-personalize.handler",
                          code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "mParticlePersonalizeLambdaBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/mparticle-personalize.zip"),
                          timeout=Duration.seconds(900),
+                         vpc=props['vpc'],
+                         vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                          role=mparticle_personalize_lambda_role)
 

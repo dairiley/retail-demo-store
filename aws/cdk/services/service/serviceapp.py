@@ -13,7 +13,7 @@ class ServiceAppStack(Stack):
             "subnet1": props['subnet1'],
             "subnet2": props['subnet2'],
             "vpc": props['vpc'],
-            "acm_cert_arn": props['acm_cert_arn'],
+            "cidr": props['vpc_cidr'],
             "stack_name": props['stack_name']
         }
         self.load_balancer = LoadBalancerStack(self, "LoadBalancer",

@@ -55,6 +55,7 @@ class ServicesStack(Stack):
             "subnet1": props['subnet1'],
             "subnet2": props['subnet2'],
             "vpc": props['vpc'],
+            "vpc_cidr": props['vpc_cidr'],
             "container_memory": container_memory,
             "container_cpu": container_cpu,
             "container_image": container_image,
@@ -71,7 +72,6 @@ class ServicesStack(Stack):
             "web_root_url": props['web_root_url'],
             "image_root_url": props['image_root_url'],
             "evidently_project_name": props['evidently_project_name'],
-            "acm_cert_arn": props['acm_cert_arn'],
             "parameter_ivs_video_channel_map": props['parameter_ivs_video_channel_map'],
             "pinpoint_app_id": props['pinpoint_app_id'],
             "opensearch_domain_endpoint": props['opensearch_domain_endpoint'],
@@ -140,6 +140,9 @@ class ServicesStack(Stack):
             "recommendations_service_dns_name": self.recommendations.load_balancer.load_balancer.attr_dns_name,
             "offers_service_dns_name": self.offers.load_balancer.load_balancer.attr_dns_name,
             "products_service_dns_name": self.products.load_balancer.load_balancer.attr_dns_name,
+            "vpc": props['vpc'],
+            "private_subnet1": props['private_subnet1'],
+            "private_subnet2": props['private_subnet2'],
             "uid": f"{props['stack_name']}-{Aws.REGION}"}
         self.pinpoint_personalize = PinpointPersonalizeStack(self, "PinpointPersonalize",
                                                              props=pinpoint_personalize_props)

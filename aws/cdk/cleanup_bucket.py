@@ -2,7 +2,8 @@ from aws_cdk import (
     Stack,
     Duration,
     aws_iam as iam,
-    aws_lambda as lambda_
+    aws_lambda as lambda_,
+    BundlingOptions
 )
 from constructs import Construct
 
@@ -39,7 +40,14 @@ class CleanupBucketStack(Stack):
                                          runtime=lambda_.Runtime.PYTHON_3_7,
                                          description="Retail Demo Store deployment utility function that deletes all objects in an S3 bucket when the CloudFormation stack is deleted",
                                          handler="index.handler",
-                                         code=lambda_.Code.from_asset("lambda/cleanup_bucket"),
+                                         code=lambda_.Code.from_asset("lambda/cleanup_bucket",
+                                                                      bundling=BundlingOptions(
+                                                                          image=lambda_.Runtime.PYTHON_3_7.bundling_image,
+                                                                          command=[
+                                                                              "bash", "-c",
+                                                                              "pip install --no-cache -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                                                                          ],
+                                                                      )),
                                          timeout=Duration.seconds(300),
                                          role=cleanup_bucket_lambda_role)
 

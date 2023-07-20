@@ -14,7 +14,6 @@ from .ssm import SsmStack
 from .tables import TablesStack
 from .vpc import VpcStack
 from .opensearch_slr import OpenSearchSLRStack
-from .acm_cert import AcmCertStack
 from constructs import Construct
 
 class BaseStack(Stack):
@@ -27,7 +26,8 @@ class BaseStack(Stack):
 
         auth_props = {
             "auth_name": uid,
-            "pinpoint_app_id": self.pinpoint.pinpoint.ref
+            "pinpoint_app_id": self.pinpoint.pinpoint.ref,
+            "location_resource_prefix": props['location_resource_prefix']
         }
         self.authentication = AuthenticationStack(self, "Authentication",
                                                   props=auth_props)
@@ -53,10 +53,12 @@ class BaseStack(Stack):
                                                        service_discovery_props)
 
         ecs_cluster_props = {
-            "stack_name": props['stack_name']
+            "stack_name": props['stack_name'],
+            "vpc": self.vpc.vpc
         }
         self.ecs_cluster = ECSClusterStack(self, "ECSCluster",
                                            props=ecs_cluster_props)
+        self.ecs_cluster.add_dependency(self.vpc)
 
         if props['create_opensearch_service_role']:
             opensearch_slr = OpenSearchSLRStack(self, "OpenSearchServiceLinkedRole")
@@ -64,7 +66,7 @@ class BaseStack(Stack):
 
         opensearch_props = {
             "vpc": self.vpc.vpc,
-            "subnet1": self.vpc.subnet1
+            "subnet1": self.vpc.public_subnet_1
         }
         self.opensearch = OpenSearchStack(self, "OpenSearch",
                                           props=opensearch_props)
@@ -85,6 +87,8 @@ class BaseStack(Stack):
         }
         self.ssm = SsmStack(self, "SSMParameters",
                             props=ssm_props)
+        self.ssm.add_dependency(self.tables)
+        self.ssm.add_dependency(self.buckets)
 
         codecommit_props = {
             "resource_bucket": props['resource_bucket'],
@@ -115,8 +119,6 @@ class BaseStack(Stack):
         EvidentlyStack(self, "Evidently",
                        props=evidently_props)
 
-        self.acm_cert = AcmCertStack(self, "SelfSignedCertACM")
-
         notebook_props = {
             "github_user": props['github_user'],
             "github_branch": props['github_branch'],
@@ -129,7 +131,7 @@ class BaseStack(Stack):
             "user_pool_arn": self.authentication.user_pool.attr_arn,
             "user_pool_id": self.authentication.user_pool.ref,
             "vpc": self.vpc.vpc,
-            "subnet1": self.vpc.subnet1,
+            "subnet1": self.vpc.public_subnet_1,
             "pinpoint_app_id": self.pinpoint.pinpoint.ref
         }
         self.notebook = NotebookStack(self, "Notebook",

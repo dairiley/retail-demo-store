@@ -150,31 +150,31 @@ class WebUIPipelineStack(Stack):
                                                   build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
                                                   environment_variables={
                                                       "PRODUCTS_SERVICE_URL": codebuild.BuildEnvironmentVariable(
-                                                          value=props['products_service_external_url']
+                                                          value=props['api_gateway_url']
                                                       ),
                                                       "USERS_SERVICE_URL": codebuild.BuildEnvironmentVariable(
-                                                          value=props['users_service_external_url']
+                                                          value=props['api_gateway_url']
                                                       ),
                                                       "CARTS_SERVICE_URL": codebuild.BuildEnvironmentVariable(
-                                                          value=props['carts_service_external_url']
+                                                          value=props['api_gateway_url']
                                                       ),
                                                       "VIDEOS_SERVICE_URL": codebuild.BuildEnvironmentVariable(
-                                                          value=props['videos_service_external_url']
+                                                          value=props['api_gateway_url']
                                                       ),
                                                       "ORDERS_SERVICE_URL": codebuild.BuildEnvironmentVariable(
-                                                          value=props['orders_service_external_url']
+                                                          value=props['api_gateway_url']
                                                       ),
                                                       "RECOMMENDATIONS_SERVICE_URL": codebuild.BuildEnvironmentVariable(
-                                                          value=props['recommendations_service_external_url']
+                                                          value=props['api_gateway_url']
                                                       ),
                                                       "SEARCH_SERVICE_URL": codebuild.BuildEnvironmentVariable(
-                                                          value=props['search_service_external_url']
+                                                          value=props['api_gateway_url']
                                                       ),
                                                       "LOCATION_SERVICE_URL": codebuild.BuildEnvironmentVariable(
-                                                          value=props['location_service_external_url']
+                                                          value=props['api_gateway_url']
                                                       ),
                                                       "OFFERS_SERVICE_URL": codebuild.BuildEnvironmentVariable(
-                                                          value=props['offers_service_external_url']
+                                                          value=props['api_gateway_url']
                                                       ),
                                                       "DEPLOYED_REGION": codebuild.BuildEnvironmentVariable(
                                                           value=Aws.REGION

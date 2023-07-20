@@ -5,6 +5,7 @@ from aws_cdk import (
     aws_iam as iam,
     aws_lambda as lambda_,
     aws_kms as kms,
+    aws_ec2 as ec2,
     aws_s3 as s3,
     aws_sns as sns
 )
@@ -17,6 +18,8 @@ class PinpointPersonalizeStack(Stack):
         self.pinpoint_personalize_role = iam.Role(self, "PinpointPersonalizeRole",
                                                   assumed_by=iam.ServicePrincipal("pinpoint.amazonaws.com"),
                                                   role_name=f"{props['uid']}-PinptP9e",
+                                                  managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, "PinpointPersonalizeRoleVPCAccess",
+                                                                                                              managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole")],
                                                   inline_policies={
                                                       "PersonalizeAccess": iam.PolicyDocument(statements=[
                                                           iam.PolicyStatement(
@@ -36,6 +39,9 @@ class PinpointPersonalizeStack(Stack):
 
         customize_recommendations_lambda_role = iam.Role(self, "CustomizeRecommendationsFunctionRole",
                                                          assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+                                                         managed_policies=[
+                                                             iam.ManagedPolicy.from_managed_policy_arn(self,"CustomizeRecommendationsFunctionRoleVPCAccess",
+                                                                                                       managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole")],
                                                          inline_policies={
                                                              "CloudWatchAndPinpoint": iam.PolicyDocument(statements=[
                                                                  iam.PolicyStatement(
@@ -60,6 +66,8 @@ class PinpointPersonalizeStack(Stack):
                                                                    handler="pinpoint-recommender.lambda_handler",
                                                                    code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "CustomizeRecommendationsFunctionBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/pinpoint-recommender.zip"),
                                                                    role=customize_recommendations_lambda_role,
+                                                                   vpc=props['vpc'],
+                                                                   vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                                                                    environment={"recommendations_service_host": props['recommendations_service_dns_name']})
         self.customize_recommendations_function.add_permission("PinpointPermission",
                                                            principal=iam.ServicePrincipal("pinpoint.amazonaws.com"),
@@ -72,6 +80,8 @@ class PinpointPersonalizeStack(Stack):
                                                                           handler="pinpoint-offers-recommender.lambda_handler",
                                                                           code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "CustomizeOffersRecommendationsFunctionBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/pinpoint-offers-recommender.zip"),
                                                                           role=customize_recommendations_lambda_role,
+                                                                          vpc=props['vpc'],
+                                                                          vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                                                                           environment={
                                                                               "recommendations_service_host": props['recommendations_service_dns_name'],
                                                                               "offers_service_host": props['offers_service_dns_name'],

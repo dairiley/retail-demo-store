@@ -4,7 +4,8 @@ from aws_cdk import (
     Aws,
     aws_evidently as evidently,
     aws_iam as iam,
-    aws_lambda as lambda_
+    aws_lambda as lambda_,
+    BundlingOptions
 )
 from constructs import Construct
 
@@ -164,7 +165,14 @@ class EvidentlyStack(Stack):
                          runtime=lambda_.Runtime.PYTHON_3_9 ,
                          description="Retail Demo Store deployment utility function that cancels and deletes experiments to allow project to be fully deleted",
                          handler="index.handler",
-                         code=lambda_.Code.from_asset("base/lambda/evidently_cleanup"),
+                         code=lambda_.Code.from_asset("base/lambda/evidently_cleanup",
+                                                      bundling=BundlingOptions(
+                                                          image=lambda_.Runtime.PYTHON_3_9.bundling_image,
+                                                          command=[
+                                                              "bash", "-c",
+                                                              "pip install --no-cache -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                                                          ],
+                                                      )),
                          timeout=Duration.seconds(120),
                          role=evidently_cleanup_execution_role)
 

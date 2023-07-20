@@ -40,9 +40,9 @@ class ServiceStack(Stack):
                                           statements=[iam.PolicyStatement(
                                               actions=["dynamodb:*"],
                                               resources=[
-                                                  props['products_table'].ref,
-                                                  props['categories_table'].ref,
-                                                  props['experiment_strategy_table'].ref,
+                                                  props['products_table'].attr_arn,
+                                                  props['categories_table'].attr_arn,
+                                                  props['experiment_strategy_table'].attr_arn,
                                               ]
                                           )]
                                       ),
@@ -154,9 +154,11 @@ class ServiceStack(Stack):
                                       ),
                                   })
         if props['amazon_pay_signing_lambda']:
-            self.task_role.attach_inline_policy(iam.PolicyStatement(
-                actions=["lambda:InvokeFunction"],
-                resources=[props['amazon_pay_signing_lambda'].function_arn]
+            self.task_role.attach_inline_policy(iam.Policy(self, "AmazonPaySigningLambdaInlinePolicy",
+                                                           statements=[iam.PolicyStatement(
+                                                               actions=["lambda:InvokeFunction"],
+                                                               resources=[props['amazon_pay_signing_lambda'].function_arn]
+                                                           )]
             ))
 
         log_group = logs.LogGroup(self, "LogGroup",
@@ -224,7 +226,7 @@ class ServiceStack(Stack):
                                                   task_definition=task_definition,
                                                   security_groups=[props['source_security_group']],
                                                   vpc_subnets=ec2.SubnetSelection(subnets=[props['subnet1'], props['subnet2']]),
-                                                  assign_public_ip=True)
+                                                  assign_public_ip=False)
 
         servicediscovery.CfnService(self, "ServiceDiscoveryService",
                                     dns_config=servicediscovery.CfnService.DnsConfigProperty(

@@ -4,7 +4,7 @@
     "stack_name": "retail-demo-store",
     "retail_demo_store_deployment_configuration": {
       "_resource_bucket_description": "S3 bucket name where the Retail Demo Store deployment resources are staged (product images, nested CloudFormation templates, source code snapshot, notebooks, deployment Lambda code, etc).",
-      "resource_bucket": "test",
+      "resource_bucket": "retail-demo-store-resource-bucket",
       "_resource_bucket_relative_path_description": "Optional path in the Deployment Resources Staging bucket where the deployment resources are stored (e.g. path/path2/). Leave blank if resources are at the root of the Staging Resource Bucket. If specified, MUST end with '/'.",
       "resource_bucket_relative_path": "",
       "_create_opensearch_service_role_description": "If your account already has an IAM Role named 'AWSServiceRoleForAmazonOpenSearchService', select 'false. Otherwise, select 'true' and one will be created. ",

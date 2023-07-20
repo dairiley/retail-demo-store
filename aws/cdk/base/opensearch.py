@@ -14,7 +14,8 @@ class OpenSearchStack(Stack):
         opensearchservice_access_policy = iam.PolicyDocument(
             statements=[iam.PolicyStatement(
                 actions=["es:*"],
-                resources=["*"]
+                resources=["*"],
+                principals=[iam.AnyPrincipal()]
             )])
 
         self.security_group = ec2.SecurityGroup(self, "SecurityGroup",
@@ -42,7 +43,7 @@ class OpenSearchStack(Stack):
                                                       volume_size=10,
                                                       volume_type="gp2"
                                                   ),
-                                                  access_policies=[opensearchservice_access_policy],
+                                                  access_policies=opensearchservice_access_policy,
                                                   advanced_options={
                                                       "rest.action.multi.allow_explicit_index": "true"
                                                   },

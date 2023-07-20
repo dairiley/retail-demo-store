@@ -14,17 +14,18 @@ class LoadBalancerStack(Stack):
 
         self.security_group = ec2.SecurityGroup(self, "SecurityGroup",
                                                 vpc=props['vpc'],
-                                                description=f"{props['stack_name']}-alb")
-        self.security_group.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(443))
-        self.security_group.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80))
+                                                description=f"{props['stack_name']}/ECS/{props['service_name']}/SecurityGroup")
+        self.security_group.add_ingress_rule(ec2.Peer.ipv4(props['cidr']), ec2.Port.tcp(80), "Allow from within the VPC for port 80")
 
         self.load_balancer = elbv2.CfnLoadBalancer(self, "LoadBalancer",
                                                    load_balancer_attributes=[
                                                        elbv2.CfnLoadBalancer.LoadBalancerAttributeProperty(
-                                                           key="routing.http.drop_invalid_header_fields.enabled",
-                                                           value="true"
+                                                           key="deletion_protection.enabled",
+                                                           value="false"
                                                        )],
                                                    subnets=[props['subnet1'].subnet_id, props['subnet2'].subnet_id],
+                                                   scheme="internal",
+                                                   type="network",
                                                    tags=[CfnTag(
                                                        key="RetailDemoStoreServiceName",
                                                        value=props['service_name']
@@ -38,7 +39,7 @@ class LoadBalancerStack(Stack):
                                                  healthy_threshold_count=2,
                                                  matcher=elbv2.CfnTargetGroup.MatcherProperty(http_code="200-299"),
                                                  port=80,
-                                                 protocol="HTTP",
+                                                 protocol="TCP",
                                                  target_group_attributes=[
                                                      elbv2.CfnTargetGroup.TargetGroupAttributeProperty(
                                                          key="deregistration_delay.timeout_seconds",
@@ -48,62 +49,18 @@ class LoadBalancerStack(Stack):
                                                  vpc_id=props['vpc'].vpc_id)
         self.target_group.add_dependency(self.load_balancer)
 
-        listener_http = elbv2.CfnListener(self, "LoadBalancerListener",
+        self.listener = elbv2.CfnListener(self, "LoadBalancerListener",
                                           default_actions=[elbv2.CfnListener.ActionProperty(
                                               type="forward",
                                               forward_config=elbv2.CfnListener.ForwardConfigProperty(
-                                                  target_groups=[elbv2.CfnListener.TargetGroupTupleProperty(
-                                                      target_group_arn=self.target_group.attr_target_group_arn,
-                                                      weight=123
-                                                  )]
+                                                  target_groups=[elbv2.CfnListener.TargetGroupTupleProperty(target_group_arn=self.target_group.attr_target_group_arn)]
                                               )
                                           )],
                                           load_balancer_arn=self.load_balancer.ref,
                                           port=80,
-                                          protocol="HTTP")
+                                          protocol="TCP")
 
-        listener_https = elbv2.CfnListener(self, "LoadBalancerHTTPSListener",
-                                           default_actions=[elbv2.CfnListener.ActionProperty(
-                                               type="forward",
-                                               forward_config=elbv2.CfnListener.ForwardConfigProperty(
-                                                   target_groups=[elbv2.CfnListener.TargetGroupTupleProperty(
-                                                       target_group_arn=self.target_group.attr_target_group_arn,
-                                                       weight=123
-                                                   )]
-                                               )
-                                           )],
-                                           certificates=[elbv2.CfnListener.CertificateProperty(
-                                               certificate_arn=props['acm_cert_arn']
-                                           )],
-                                           load_balancer_arn=self.load_balancer.ref,
-                                           port=443,
-                                           protocol="HTTPS")
-
-        elbv2.CfnListenerRule(self, "ListenerRule",
-                              listener_arn=listener_http.attr_listener_arn,
-                              priority=2,
-                              conditions=[elbv2.CfnListenerRule.RuleConditionProperty(
-                                  field="path-pattern",
-                                  values=["/"]
-                              )],
-                              actions=[elbv2.CfnListenerRule.ActionProperty(
-                                  type="forward",
-                                  target_group_arn=self.target_group.ref,
-                              )])
-
-        elbv2.CfnListenerRule(self, "ListenerHTTPSRule",
-                              listener_arn=listener_https.attr_listener_arn,
-                              priority=2,
-                              conditions=[elbv2.CfnListenerRule.RuleConditionProperty(
-                                  field="path-pattern",
-                                  values=["/"]
-                              )],
-                              actions=[elbv2.CfnListenerRule.ActionProperty(
-                                  type="forward",
-                                  target_group_arn=self.target_group.ref,
-                              )])
-
-        self.service_url = f"http://{self.load_balancer.attr_dns_name}"
+        self.service_url = f"https://{self.load_balancer.attr_dns_name}"
         ssm.StringParameter(self, "ServicesLoadBalancerSSMParameter",
                             parameter_name=f"/retaildemostore/services_load_balancers/{props['service_name']}",
                             string_value=self.service_url,

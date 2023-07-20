@@ -3,6 +3,7 @@ from aws_cdk import (
     Aws,
     Duration,
     aws_iam as iam,
+    aws_ec2 as ec2,
     aws_lambda as lambda_,
     aws_events as events,
     aws_events_targets as targets,
@@ -41,11 +42,11 @@ class DeploymentSupportStack(Stack):
                                                                       "ssm:PutParameter",
                                                                       "ssm:GetParameter"
                                                                   ],
-                                                                  resources=[f"arn:aws:ssm:{Aws.REGION}:{Aws.acccountId}:parameter/retaildemostore*"]
+                                                                  resources=[f"arn:aws:ssm:{Aws.REGION}:{Aws.ACCOUNT_ID}:parameter/retaildemostore*"]
                                                               ),
                                                               iam.PolicyStatement(
-                                                                  actions=["iam.PassRole"],
-                                                                  resources=[f"arn:aws:iam::{Aws.REGION}:{Aws.acccountId}:role/{props['uid']})-PersonalizeS3"]
+                                                                  actions=["iam:PassRole"],
+                                                                  resources=[f"arn:aws:iam::{Aws.REGION}:{Aws.ACCOUNT_ID}:role/{props['uid']})-PersonalizeS3"]
                                                               ),
                                                               iam.PolicyStatement(
                                                                   actions=[
@@ -53,14 +54,14 @@ class DeploymentSupportStack(Stack):
                                                                       "events:DisableRule",
                                                                       "events:EnableRule"
                                                                   ],
-                                                                  resources=[f"arn:aws:events:{Aws.REGION}:{Aws.acccountId}:rule/RetailDemoStore-PersonalizePreCreateScheduledRule"]
+                                                                  resources=[f"arn:aws:events:{Aws.REGION}:{Aws.ACCOUNT_ID}:rule/RetailDemoStore-PersonalizePreCreateScheduledRule"]
                                                               ),
                                                               iam.PolicyStatement(
                                                                   actions=[
                                                                       "lambda:AddPermission",
                                                                       "lambda:RemovePermission"
                                                                   ],
-                                                                  resources=[f"arn:aws:lambda:{Aws.REGION}:{Aws.acccountId}:function:RetailDemoStorePersonalizePreCreateResources"]
+                                                                  resources=[f"arn:aws:lambda:{Aws.REGION}:{Aws.ACCOUNT_ID}:function:RetailDemoStorePersonalizePreCreateResources"]
                                                               ),
                                                               iam.PolicyStatement(
                                                                   actions=[
@@ -68,14 +69,14 @@ class DeploymentSupportStack(Stack):
                                                                       "personalize:Delete*",
                                                                       "personalize:Describe*"
                                                                   ],
-                                                                  resources=[f"arn:aws:personalize:{Aws.REGION}:{Aws.acccountId}:*/retaildemo*"]
+                                                                  resources=[f"arn:aws:personalize:{Aws.REGION}:{Aws.ACCOUNT_ID}:*/retaildemo*"]
                                                               ),
                                                               iam.PolicyStatement(
                                                                   actions=[
                                                                       "personalize:DescribeEventTracker",
                                                                       "personalize:DeleteEventTracker"
                                                                   ],
-                                                                  resources=[f"arn:aws:personalize:{Aws.REGION}:{Aws.acccountId}:*"]
+                                                                  resources=[f"arn:aws:personalize:{Aws.REGION}:{Aws.ACCOUNT_ID}:*"]
                                                               ),
                                                               iam.PolicyStatement(
                                                                   actions=[
@@ -83,7 +84,7 @@ class DeploymentSupportStack(Stack):
                                                                       "codepipeline:ListTagsForResource",
                                                                       "codepipeline:StartPipelineExecution"
                                                                   ],
-                                                                  resources=[f"arn:aws:codepipeline:{Aws.REGION}:{Aws.acccountId}:*"]
+                                                                  resources=[f"arn:aws:codepipeline:{Aws.REGION}:{Aws.ACCOUNT_ID}:*"]
                                                               )
                                                           ])
                                                       })
@@ -103,10 +104,10 @@ class DeploymentSupportStack(Stack):
                                                                       "csv_path": f"{props['resource_bucket_relative_path']}/csvs/",
                                                                       "lambda_event_rule_name": "RetailDemoStore-PersonalizePreCreateScheduledRule",
                                                                       "Uid": props['uid'],
-                                                                      "DeployPersonalizedOffersCampaign": props['deploy_personalized_offers_campaign'],
+                                                                      "DeployPersonalizedOffersCampaign": 'Yes' if props['deploy_personalized_offers_campaign'] else 'No',
                                                                       "ProductsServiceExternalUrl": props['products_service_external_url'],
                                                                       "PersonalizeRoleArn": props['personalize_role_arn'],
-                                                                      "PreCreatePersonalizeResources": props['pre_create_personalize_resources']
+                                                                      "PreCreatePersonalizeResources": 'Yes' if props['pre_create_personalize_resources'] else 'No'
                                                                   })
 
         personalize_pre_create_scheduled_rule = events.Rule(self, "PersonalizePreCreateScheduledRule",
@@ -147,7 +148,7 @@ class DeploymentSupportStack(Stack):
                                                                        "ssm:GetParameter"
                                                                    ],
                                                                    resources=[
-                                                                       f"arn:aws:ssm:{Aws.REGION}:{Aws.acccountId}:parameter/retaildemostore*"]
+                                                                       f"arn:aws:ssm:{Aws.REGION}:{Aws.ACCOUNT_ID}:parameter/retaildemostore*"]
                                                                ),
                                                                iam.PolicyStatement(
                                                                    actions=[
@@ -156,18 +157,18 @@ class DeploymentSupportStack(Stack):
                                                                        "ivs:ListStreamKeys",
                                                                        "ivs:DeleteChannel"
                                                                    ],
-                                                                   resources=[f"arn:aws:ivs:{Aws.REGION}:{Aws.acccountId}:*"]
+                                                                   resources=[f"arn:aws:ivs:{Aws.REGION}:{Aws.ACCOUNT_ID}:*"]
                                                                ),
                                                                iam.PolicyStatement(
                                                                    actions=[
                                                                        "ivs:StopStream",
                                                                        "ivs:GetChannel"
                                                                    ],
-                                                                   resources=[f"arn:aws:ivs:{Aws.REGION}:{Aws.acccountId}:channel/*"]
+                                                                   resources=[f"arn:aws:ivs:{Aws.REGION}:{Aws.ACCOUNT_ID}:channel/*"]
                                                                ),
                                                                iam.PolicyStatement(
                                                                    actions=["ivs:DeleteStreamKey"],
-                                                                   resources=[f"arn:aws:ivs:{Aws.REGION}:{Aws.acccountId}:stream-key/*"]
+                                                                   resources=[f"arn:aws:ivs:{Aws.REGION}:{Aws.ACCOUNT_ID}:stream-key/*"]
                                                                ),
                                                                iam.PolicyStatement(
                                                                    actions=["s3:ListBucket"],
@@ -237,7 +238,7 @@ class DeploymentSupportStack(Stack):
                                                                     timeout=Duration.seconds(300),
                                                                     role=opensearch_pre_index_lambda_role,
                                                                     vpc=props['vpc'],
-                                                                    vpc_subnets=[props['subnet1'].subnet_id, props['subnet2'].subnet_id],
+                                                                    vpc_subnets=ec2.SubnetSelection(subnets=[props['subnet1'], props['subnet2']]),
                                                                     security_groups=[props['opensearch_security_group']])
 
             CustomResource(self, "CustomLaunchOpenSearchPreIndexLambdaFunction",
@@ -304,7 +305,7 @@ class DeploymentSupportStack(Stack):
                                                                        "email_from_address": props['pinpoint_email_from_address'],
                                                                        "email_from_name": props['pinpoint_email_from_name'],
                                                                        "lambda_event_rule_name": "RetailDemoStore-PinpointPreCreateRule",
-                                                                       "DeployPersonalizedOffersCampaign": props['deploy_personalized_offers_campaign']
+                                                                       "DeployPersonalizedOffersCampaign": 'Yes' if props['deploy_personalized_offers_campaign'] else 'No'
                                                                    })
 
             if props['wait_for_offers_campaign_creation_and_deploy_pre_create_pinpoint_workshop']:

@@ -23,8 +23,8 @@ class ProductsCustomStack(Stack):
                                                          "dynamodb:PutItem",
                                                      ],
                                                      resources=[
-                                                         props['products_table'].ref,
-                                                         props['categories_table'].ref
+                                                         props['products_table'].attr_arn,
+                                                         props['categories_table'].attr_arn
                                                      ]
                                                  )
                                              ]),

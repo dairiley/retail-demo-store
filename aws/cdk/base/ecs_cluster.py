@@ -10,4 +10,5 @@ class ECSClusterStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         self.cluster = ecs.Cluster(self, "Cluster",
-                                   cluster_name=props['stack_name'])
+                                   cluster_name=props['stack_name'],
+                                   vpc=props['vpc'])

@@ -22,7 +22,10 @@ class BucketStack(Stack):
             iam.PolicyStatement(
                 actions=["s3:PutObject"],
                 principals=[iam.ServicePrincipal("logging.s3.amazonaws.com")],
-                resources=[self.logging_bucket.bucket_arn],
+                resources=[
+                    self.logging_bucket.bucket_arn,
+                    f"{self.logging_bucket.bucket_arn}/*"
+                ],
                 conditions={
                     "StringEquals": {"aws:SourceAccount": [Aws.ACCOUNT_ID]}
                 }

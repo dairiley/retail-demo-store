@@ -4,6 +4,7 @@ from aws_cdk import (
     Duration,
     aws_iam as iam,
     aws_lambda as lambda_,
+    aws_ec2 as ec2,
     aws_s3 as s3
 )
 from constructs import Construct
@@ -26,6 +27,8 @@ class SegmentStack(Stack):
         segment_personalize_destination_lambda_execution_role = iam.Role(self, "SegmentPersonalizeDestinationLambdaExecutionRole",
                                                                          assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
                                                                          description="Execution role for the two Lambdas provided with the Segment workshop",
+                                                                         managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self,"SegmentPersonalizeDestinationLambdaExecutionRoleVPCAccess",
+                                                                                                                                     managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole")],
                                                                          inline_policies={
                                                                              "root": iam.PolicyDocument(statements=[
                                                                                  iam.PolicyStatement(
@@ -63,6 +66,8 @@ class SegmentStack(Stack):
                          code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "SegmentPersonalizeInferenceDestinationLambdaBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/segment-personalize-inference-destination.zip"),
                          timeout=Duration.seconds(900),
                          role=segment_personalize_destination_lambda_execution_role,
+                         vpc=props['vpc'],
+                         vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                          environment={
                              "personalize_campaign_id": "",
                              "segment_personas_write_key": ""

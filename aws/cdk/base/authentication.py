@@ -13,15 +13,15 @@ class AuthenticationStack(Stack):
         """
         Creates a role that allows Cognito to send SNS messages
         """
-        sns_role = iam.Role(self, "SNSRole",
-                            assumed_by=iam.ServicePrincipal("cognito-idp.amazonaws.com"),
-                            inline_policies={
-                                "CognitoSNSPolicy": iam.PolicyDocument(
-                                     statements=[iam.PolicyStatement(
-                                     actions=["sns:publish"],
-                                     resources=["*"])]
-                                )
-                            })
+        iam.Role(self, "SNSRole",
+                 assumed_by=iam.ServicePrincipal("cognito-idp.amazonaws.com"),
+                 inline_policies={
+                     "CognitoSNSPolicy": iam.PolicyDocument(
+                          statements=[iam.PolicyStatement(
+                          actions=["sns:publish"],
+                          resources=["*"])]
+                     )
+                 })
 
         """
         Creates a user pool in cognito for your app to auth against
@@ -134,14 +134,13 @@ class AuthenticationStack(Stack):
                                                  )
                                              ])
 
-        self.user_pool_id_str=f"{props['auth_name']}-client"
         """
         Creates a User Pool Client to be used by the identity pool
         """
         self.user_pool_client = cognito.CfnUserPoolClient(self, "UserPoolClient",
                                                           user_pool_id=self.user_pool.ref,
                                                           generate_secret=False,
-                                                          client_name=self.user_pool_id_str)
+                                                          client_name=f"{props['auth_name']}-client")
 
         """
         Creates a federeated Identity pool
@@ -151,7 +150,7 @@ class AuthenticationStack(Stack):
                                                      allow_unauthenticated_identities=True,
                                                      cognito_identity_providers=[
                                                          cognito.CfnIdentityPool.CognitoIdentityProviderProperty(
-                                                             client_id=self.user_pool_id_str,
+                                                             client_id=self.user_pool_client.ref,
                                                              provider_name=self.user_pool.attr_provider_name,
                                                              server_side_token_check=False
                                                          )
@@ -163,36 +162,71 @@ class AuthenticationStack(Stack):
         Only allows users in the previously created Identity Pool
         """
         cognito_authorized_role = iam.Role(self, "CognitoAuthorizedRole",
-                                           assumed_by=iam.ServicePrincipal("cognito-identity.amazonaws.com"),
+                                           assumed_by=iam.FederatedPrincipal("cognito-identity.amazonaws.com", {
+                                                                                 "StringEquals": {"cognito-identity.amazonaws.com:aud": [self.identity_pool.ref]},
+                                                                                 "ForAnyValue:StringLike": {"cognito-identity.amazonaws.com:amr": ['authenticated']}
+                                                                             }, "sts:AssumeRoleWithWebIdentity"),
                                            inline_policies={
-                                               "CustomPolicy": iam.PolicyDocument(
-                                                   statements=[iam.PolicyStatement(
-                                                       actions=["sts:AssumeRoleWithWebIdentity"],
-                                                       resources=["cognito:*"],
-                                                       conditions={
-                                                           "StringEquals": {"cognito-identity.amazonaws.com:aud": [self.identity_pool.ref]},
-                                                           "ForAnyValue:StringLike": {"cognito-identity.amazonaws.com:amr": ['authenticated']}
-                                                       },
-                                                   )]
-                                               ),
                                                "CognitoAuthorizedPolicy": iam.PolicyDocument(
                                                    statements=[iam.PolicyStatement(
                                                        actions=[
                                                            "mobiletargeting:UpdateEndpoint",
-                                                           "mobiletargeting:PutEvents",
-                                                           "mobileanalytics:PutEvents",
-                                                           "personalize:PutEvents",
-                                                           "cognito-identity:*",
-                                                           "cognito-sync:*",
-                                                           "lex:PostText"
+                                                           "mobiletargeting:PutEvents"
                                                        ],
-                                                       resources=[
-                                                           f"arn:aws:mobiletargeting:{Aws.REGION}:{Aws.ACCOUNT_ID}:apps/{props['pinpoint_app_id']}/*",
-                                                           f"arn:aws:cognito-sync:{Aws.REGION}:{Aws.ACCOUNT_ID}:identitypool/{self.identity_pool.ref}",
-                                                           f"arn:aws:lex:{Aws.REGION}:{Aws.ACCOUNT_ID}:bot:RetailDemoStore:*"
-                                                       ]
+                                                       resources=[f"arn:aws:mobiletargeting:{Aws.REGION}:{Aws.ACCOUNT_ID}:apps/{props['pinpoint_app_id']}/*"]
+                                                   ),
+                                                   iam.PolicyStatement(
+                                                      actions=[
+                                                          "mobileanalytics:PutEvents",
+                                                          "personalize:PutEvents",
+                                                      ],
+                                                      resources=["*"]
+                                                   ),
+                                                   iam.PolicyStatement(
+                                                       actions=["cognito-identity:*"],
+                                                       resources=[f"arn:aws:cognito-identity:{Aws.REGION}:{Aws.ACCOUNT_ID}:identitypool/{self.identity_pool.ref}"]
+                                                   ),
+                                                   iam.PolicyStatement(
+                                                       actions=["cognito-sync:*"],
+                                                       resources=[f"arn:aws:cognito-sync:{Aws.REGION}:{Aws.ACCOUNT_ID}:identitypool/{self.identity_pool.ref}"]
+                                                   ),
+                                                   iam.PolicyStatement(
+                                                       actions=["lex:PostText"],
+                                                       resources=[f"arn:aws:lex:{Aws.REGION}:{Aws.ACCOUNT_ID}:bot:RetailDemoStore:*"]
+                                                   ),
+                                                   iam.PolicyStatement(
+                                                       actions=[
+                                                           "geo:BatchGetDevicePosition",
+                                                           "geo:BatchUpdateDevicePosition",
+                                                           "geo:DescribeTracker",
+                                                           "geo:GetDevicePosition",
+                                                           "geo:GetDevicePositionHistory",
+                                                           "geo:ListDevicePositions",
+                                                           "geo:ListTrackers"
+                                                       ],
+                                                       resources=[f"arn:aws:geo:{Aws.REGION}:{Aws.ACCOUNT_ID}:tracker/{props['location_resource_prefix']}*"]
+                                                   ),
+                                                   iam.PolicyStatement(
+                                                       actions=[
+                                                           "geo:ListGeofences",
+                                                           "geo:ListGeofenceCollections",
+                                                           "geo:GetGeofence",
+                                                           "geo:DescribeGeofenceCollection"
+                                                       ],
+                                                       resources=[f"arn:aws:geo:{Aws.REGION}:{Aws.ACCOUNT_ID}:geofence-collection/{props['location_resource_prefix']}*"]
+                                                   ),
+                                                   iam.PolicyStatement(
+                                                       actions=[
+                                                           "geo:GetMapGlyphs",
+                                                           "geo:GetMapSprites",
+                                                           "geo:GetMapStyleDescriptor",
+                                                           "geo:GetMapTile",
+                                                           "geo:DescribeMap",
+                                                           "geo:ListMaps"
+                                                       ],
+                                                       resources=[f"arn:aws:geo:{Aws.REGION}:{Aws.ACCOUNT_ID}:map/{props['location_resource_prefix']}*"]
                                                    )]
-                                               ),
+                                               )
                                            })
 
         """
@@ -200,41 +234,44 @@ class AuthenticationStack(Stack):
         Only allows users in the previously created Identity Pool
         """
         cognito_unauthorized_role = iam.Role(self, "CognitoUnAuthorizedRole",
-                                           assumed_by=iam.ServicePrincipal("cognito-identity.amazonaws.com"),
-                                           inline_policies={
-                                               "CustomPolicy": iam.PolicyDocument(
-                                                   statements=[iam.PolicyStatement(
-                                                       actions=["sts:AssumeRoleWithWebIdentity"],
-                                                       resources=["cognito:*"],
-                                                       conditions={
-                                                           "StringEquals": {"cognito-identity.amazonaws.com:aud": [self.identity_pool.ref]},
-                                                           "ForAnyValue:StringLike": {"cognito-identity.amazonaws.com:amr": ['authenticated']}
-                                                       },
-                                                   )]
-                                               ),
-                                               "CognitoUnauthorizedPolicy": iam.PolicyDocument(
-                                                    statements=[iam.PolicyStatement(
-                                                        actions=[
-                                                            "mobiletargeting:UpdateEndpoint",
-                                                            "mobiletargeting:PutEvents",
-                                                            "mobileanalytics:PutEvents",
-                                                            "personalize:PutEvents",
-                                                            "cognito-identity:*",
-                                                            "cognito-sync:*",
-                                                            "lex:PostText"
-                                                        ],
-                                                        resources=[
-                                                            f"arn:aws:mobiletargeting:{Aws.REGION}:{Aws.ACCOUNT_ID}:apps/{props['pinpoint_app_id']}/*",
-                                                            f"arn:aws:cognito-sync:{Aws.REGION}:{Aws.ACCOUNT_ID}:identitypool/{self.identity_pool.ref}",
-                                                            f"arn:aws:lex:{Aws.REGION}:{Aws.ACCOUNT_ID}:bot:RetailDemoStore:*"
-                                                        ]
-                                                    )]
-                                                ),
-                                           })
+                                             assumed_by=iam.FederatedPrincipal("cognito-identity.amazonaws.com", {
+                                                 "StringEquals": {"cognito-identity.amazonaws.com:aud": [self.identity_pool.ref]},
+                                                 "ForAnyValue:StringLike": {"cognito-identity.amazonaws.com:amr": ['authenticated']}
+                                             }, "sts:AssumeRoleWithWebIdentity"),
+                                             inline_policies={
+                                                 "CognitoUnauthorizedPolicy": iam.PolicyDocument(
+                                                     statements=[iam.PolicyStatement(
+                                                         actions=[
+                                                             "mobiletargeting:UpdateEndpoint",
+                                                             "mobiletargeting:PutEvents"
+                                                         ],
+                                                         resources=[
+                                                             f"arn:aws:mobiletargeting:{Aws.REGION}:{Aws.ACCOUNT_ID}:apps/{props['pinpoint_app_id']}/*"]
+                                                     ),
+                                                         iam.PolicyStatement(
+                                                             actions=[
+                                                                 "mobileanalytics:PutEvents",
+                                                                 "personalize:PutEvents",
+                                                             ],
+                                                             resources=["*"]
+                                                         ),
+                                                         iam.PolicyStatement(
+                                                             actions=["cognito-sync:*"],
+                                                             resources=[
+                                                                 f"arn:aws:cognito-sync:{Aws.REGION}:{Aws.ACCOUNT_ID}:identitypool/{self.identity_pool.ref}"]
+                                                         ),
+                                                         iam.PolicyStatement(
+                                                             actions=["lex:PostText"],
+                                                             resources=[
+                                                                 f"arn:aws:lex:{Aws.REGION}:{Aws.ACCOUNT_ID}:bot:RetailDemoStore:*"]
+                                                         )
+                                                     ]
+                                                 )
+                                             })
 
         cognito.CfnIdentityPoolRoleAttachment(self, "IdentityPoolRoleMapping",
                                               identity_pool_id=self.identity_pool.ref,
-                                              roles=[{
-                                                      "authenticated": cognito_authorized_role.role_arn,
-                                                      "unauthenticated": cognito_unauthorized_role.role_arn
-                                              }])
+                                              roles={
+                                                  "authenticated": cognito_authorized_role.role_arn,
+                                                  "unauthenticated": cognito_unauthorized_role.role_arn
+                                              })
