@@ -122,8 +122,8 @@ find . -name '.DS_Store' -type f -delete
 echo " + Staging to $BUCKET in $S3PATH"
 
 echo " + Uploading CloudFormation Templates"
-aws s3 cp aws/cloudformation-templates/ s3://${BUCKET}/${S3PATH}cloudformation-templates --recursive $S3PUBLIC
-echo " For CloudFormation : https://${BUCKET_DOMAIN}/${BUCKET}/${S3PATH}cloudformation-templates/template.yaml"
+aws s3 cp aws/cdk/cdk.out s3://${BUCKET}/${S3PATH}cloudformation-templates --recursive $S3PUBLIC
+echo " For CloudFormation : https://${BUCKET_DOMAIN}/${BUCKET}/${S3PATH}cloudformation-templates/retail-demo-store.template.json"
 
 if [ "$only_cfn_template" = false ]; then
     echo " + Packaging Source"
@@ -185,6 +185,6 @@ if [ "$only_cfn_template" = false ]; then
 fi
 echo " + Done s3://${BUCKET}/${S3PATH} "
 echo " Launch CloudFormation stack: https://console.aws.amazon.com/cloudformation/home?region=${BUCKET_LOCATION}#/stacks/create/review?templateURL=https://${BUCKET_DOMAIN}/${BUCKET}/${S3PATH}cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=${BUCKET}"
-echo " For CloudFormation : https://${BUCKET_DOMAIN}/${BUCKET}/${S3PATH}cloudformation-templates/template.yaml"
+echo " For CloudFormation : https://${BUCKET_DOMAIN}/${BUCKET}/${S3PATH}cloudformation-templates/retail-demo-store.template.json"
 
 
