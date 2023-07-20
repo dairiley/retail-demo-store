@@ -4,6 +4,7 @@ from aws_cdk import (
     aws_iam as iam,
     aws_lambda as lambda_,
     aws_secretsmanager as secretsmanager,
+    SecretValue,
     aws_s3 as s3
 )
 from constructs import Construct
@@ -14,7 +15,7 @@ class AmazonPayStack(Stack):
 
         amazon_pay_private_key_secret = secretsmanager.Secret(self, "AmazonPayPrivateKeySecret",
                                                               secret_name="AmazonPayPrivateKey",
-                                                              secret_string_value=props['amazon_pay_private_key'])
+                                                              secret_string_value=SecretValue.unsafe_plain_text(props['amazon_pay_private_key']))
 
         amazon_pay_signing_lambda_role = iam.Role(self, "AmazonPaySigningLambdaExecutionRole",
                                     assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
@@ -30,7 +31,7 @@ class AmazonPayStack(Stack):
                                             ),
                                             iam.PolicyStatement(
                                                 actions=["secretsmanager:GetSecretValue"],
-                                                resources=[amazon_pay_private_key_secret]
+                                                resources=[amazon_pay_private_key_secret.secret_arn]
                                             )]
                                         )
                                     })
@@ -43,8 +44,8 @@ class AmazonPayStack(Stack):
                                                           code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "AmazonPaySigningLambdaBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/amazon-pay-signing.zip"),
                                                           timeout=Duration.seconds(30),
                                                           role=amazon_pay_signing_lambda_role,
-                                                          environment=[
-                                                              ["AmazonPayPublicKeyId", props['amazon_pay_public_key_id']],
-                                                              ["AmazonPayPrivateKeySecretArn", props['amazon_pay_private_key_secret']],
-                                                              ["WebURL", props['web_url']]
-                                                          ])
+                                                          environment={
+                                                              "AmazonPayPublicKeyId": props['amazon_pay_public_key_id'],
+                                                              "AmazonPayPrivateKeySecretArn": amazon_pay_private_key_secret.secret_arn,
+                                                              "WebURL": props['web_url']
+                                                          })

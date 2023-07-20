@@ -3,6 +3,7 @@ from aws_cdk import (
     Aws,
     Duration,
     aws_iam as iam,
+    aws_ec2 as ec2,
     aws_lambda as lambda_,
     aws_logs as logs,
     aws_s3 as s3,
@@ -15,6 +16,8 @@ class AlexaStack(Stack):
 
         alexa_skill_role = iam.Role(self, "AlexaSkillIAMRole",
                             assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+                            managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, "AlexaSkillIAMRoleVPCAccess",
+                                                                                        managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole")],
                             inline_policies={
                                 "AlexaLambdaExecutionPolicy": iam.PolicyDocument(
                                     statements=[
@@ -52,6 +55,8 @@ class AlexaStack(Stack):
                                                      timeout=Duration.seconds(60),
                                                      role=alexa_skill_role,
                                                      memory_size=512,
+                                                     vpc=props['vpc'],
+                                                     vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                                                      environment={
                                                          "OrdersServiceExternalUrl": props['orders_service_external_url'],
                                                          "CartsServiceExternalUrl": props['carts_service_external_url'],

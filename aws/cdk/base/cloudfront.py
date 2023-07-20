@@ -1,6 +1,7 @@
 from aws_cdk import (
     Stack,
     aws_s3 as s3,
+    Aws,
     aws_cloudfront as cloudfront,
     aws_iam as iam,
     CustomResource
@@ -27,19 +28,11 @@ class CloudFrontStack(Stack):
                        resource_type="Custom::EmptyStackBucket",
                        service_token=props['cleanup_bucket_lambda_arn'],
                        properties={
-                           "bucket_name": self.webui_bucket.bucket_name
+                           "BucketName": self.webui_bucket.bucket_name
                        })
 
         webui_origin_access_identity = cloudfront.OriginAccessIdentity(self, "WebUIBucketOriginAccessIdentity",
                                                                        comment=f"fOriginAccessIdentity for {self.webui_bucket.bucket_name}")
-
-        self.webui_bucket.add_to_resource_policy(
-            iam.PolicyStatement(
-                actions=["s3:GetObject"],
-                principals=[iam.ArnPrincipal(f"arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity{webui_origin_access_identity.origin_access_identity_id}")],
-                resources=[self.webui_bucket.bucket_arn],
-            )
-        )
 
         self.distribution = cloudfront.CloudFrontWebDistribution(self, "WebUICDN",
                                                                  comment=f"Retail Demo Store CDN for {self.webui_bucket.bucket_name}",
@@ -56,6 +49,17 @@ class CloudFrontStack(Stack):
                                                                  )]
                                                              )
 
+        self.webui_bucket.add_to_resource_policy(
+            iam.PolicyStatement(
+                actions=["s3:GetObject"],
+                principals=[iam.ServicePrincipal("cloudfront.amazonaws.com",
+                                                 conditions={"StringEquals": {
+                                                     "AWS:SourceArn": f"arn:aws:cloudfront::{Aws.ACCOUNT_ID}:distribution/{self.distribution.distribution_id}"
+                                                 }})],
+                resources=[f"{self.webui_bucket.bucket_arn}/*"],
+            )
+        )
+
         """
         Swagger UI
         """
@@ -68,23 +72,15 @@ class CloudFrontStack(Stack):
                                      website_index_document="index.html")
 
         # Empties bucket when stack is deleted
-        CustomResource(self, "EmptyWebUIBucEmptySwaggerUIBucketket",
+        CustomResource(self, "EmptyWebUIBucEmptySwaggerUIBucket",
                        resource_type="Custom::EmptyStackBucket",
                        service_token=props['cleanup_bucket_lambda_arn'],
                        properties={
-                           "bucket_name": self.swaggerui_bucket.bucket_name
+                           "BucketName": self.swaggerui_bucket.bucket_name
                        })
 
         swaggerui_origin_access_identity = cloudfront.OriginAccessIdentity(self, "SwaggerUIBucketOriginAccessIdentity",
                                                                            comment=f"fOriginAccessIdentity for {self.swaggerui_bucket.bucket_name}")
-
-        self.swaggerui_bucket.add_to_resource_policy(
-            iam.PolicyStatement(
-                actions=["s3:GetObject"],
-                principals=[iam.ArnPrincipal(f"arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity{swaggerui_origin_access_identity.origin_access_identity_id}")],
-                resources=[self.swaggerui_bucket.bucket_arn],
-            )
-        )
 
         self.swaggerui_distribution = cloudfront.CloudFrontWebDistribution(self, "SwaggerUICDN",
                                                                            comment=f"Swagger UI CDN for {self.swaggerui_bucket.bucket_name}",
@@ -100,3 +96,14 @@ class CloudFrontStack(Stack):
                                                                                behaviors=[cloudfront.Behavior(is_default_behavior=True)],
                                                                            )]
                                                                        )
+
+        self.swaggerui_bucket.add_to_resource_policy(
+            iam.PolicyStatement(
+                actions=["s3:GetObject"],
+                principals=[iam.ServicePrincipal("cloudfront.amazonaws.com",
+                                                 conditions={"StringEquals": {
+                                                     "AWS:SourceArn": f"arn:aws:cloudfront::{Aws.ACCOUNT_ID}:distribution/{self.swaggerui_distribution.distribution_id}"
+                                                 }})],
+                resources=[f"{self.swaggerui_bucket.bucket_arn}/*"],
+            )
+        )

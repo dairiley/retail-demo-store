@@ -9,6 +9,7 @@ from aws_cdk import (
     aws_events_targets as targets,
     aws_apigatewayv2 as apigatewayv2,
     aws_dynamodb as dynamodb,
+    aws_ec2 as ec2,
     aws_s3 as s3,
     CustomResource
 )
@@ -81,9 +82,10 @@ class LocationStack(Stack):
                                                                 "RESOURCE_BUCKET_PATH": props['resource_bucket_relative_path']
                                                             })
 
-        location_resource_stack = CustomResource(self, "CustomLocationResourceStackLambdaFunction",
-                                                 service_token=location_resource_stack_function.function_arn,
-                                                 properties={"CreateDefaultGeofence": props['deploy_default_geofence']})
+        resource = CustomResource(self, "CustomLocationResourceStackLambdaFunction",
+                                  service_token=location_resource_stack_function.function_arn,
+                                  properties={"CreateDefaultGeofence": props['deploy_default_geofence']})
+        self.location_resource_name = resource.get_att_string("LocationResourceName")
 
         location_geofence_event_log_group = logs.LogGroup(self, "LocationGeofenceEventLogGroup",
                                                           log_group_name=f"/aws/events/location-Monitor")
@@ -116,8 +118,10 @@ class LocationStack(Stack):
                                                                                  api_id=location_geofence_browser_notification_api.attr_api_id)
 
         location_geofence_event_handler_role = iam.Role(self, "LocationGeofenceEventHandlerLambdaExecutionRole",
-                                                       assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
-                                                       inline_policies={
+                                                        assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+                                                        managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, "LocationGeofenceEventHandlerLambdaExecutionRoleVPCAccess",
+                                                                                                                    managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole")],
+                                                        inline_policies={
                                                            "root": iam.PolicyDocument(statements=[
                                                                iam.PolicyStatement(
                                                                    actions=[
@@ -164,29 +168,31 @@ class LocationStack(Stack):
                                                                    resources=[f"arn:aws:ssm:{Aws.REGION}:{Aws.ACCOUNT_ID}:parameter/retaildemostore-pinpoint-sms-longcode"]
                                                                )
                                                            ])
-                                                       })
+                                                        })
 
         location_geofence_event_handler_function = lambda_.Function(self, "LocationGeofenceEventHandler",
-                                                               runtime=lambda_.Runtime.PYTHON_3_8,
-                                                               description="Handles Amazon Location geofence entry/exit events in Location Service demo",
-                                                               function_name="LocationNrfDemoGeofenceEventHandler",
-                                                               handler="location-resource-stack.lambda_handler",
-                                                               code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "LocationGeofenceEventHandlerBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/location-geofence-event.zip"),
-                                                               timeout=Duration.seconds(900),
-                                                               role=location_geofence_event_handler_role,
-                                                               environment={
-                                                                   "UserPoolId": props['user_pool_id'],
-                                                                   "PinpointAppId": props['pinpoint_app_id'],
-                                                                   "EmailFromAddress": props['pinpoint_email_from_address'],
-                                                                   "ProductsServiceExternalUrl": props['products_service_external_url'],
-                                                                   "CartsServiceExternalUrl": props['carts_service_external_url'],
-                                                                   "OrdersServiceExternalUrl": props['orders_service_external_url'],
-                                                                   "OffersServiceExternalUrl": props['offers_service_external_url'],
-                                                                   "UsersServiceExternalUrl": props['users_service_external_url'],
-                                                                   "WebURL": props['web_url'],
-                                                                   "NotificationEndpointUrl": f"{location_geofence_browser_notification_api.attr_api_endpoint}/{location_geofence_browser_notification_api_stage}",
-                                                                   "WebsocketDynamoTableName": websocket_connection_table.ref
-                                                               })
+                                                                    runtime=lambda_.Runtime.PYTHON_3_8,
+                                                                    description="Handles Amazon Location geofence entry/exit events in Location Service demo",
+                                                                    function_name="LocationNrfDemoGeofenceEventHandler",
+                                                                    handler="location-resource-stack.lambda_handler",
+                                                                    code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "LocationGeofenceEventHandlerBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/location-geofence-event.zip"),
+                                                                    timeout=Duration.seconds(900),
+                                                                    role=location_geofence_event_handler_role,
+                                                                    vpc=props['vpc'],
+                                                                    vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
+                                                                    environment={
+                                                                        "UserPoolId": props['user_pool_id'],
+                                                                        "PinpointAppId": props['pinpoint_app_id'],
+                                                                        "EmailFromAddress": props['pinpoint_email_from_address'],
+                                                                        "ProductsServiceExternalUrl": props['products_service_external_url'],
+                                                                        "CartsServiceExternalUrl": props['carts_service_external_url'],
+                                                                        "OrdersServiceExternalUrl": props['orders_service_external_url'],
+                                                                        "OffersServiceExternalUrl": props['offers_service_external_url'],
+                                                                        "UsersServiceExternalUrl": props['users_service_external_url'],
+                                                                        "WebURL": props['web_url'],
+                                                                        "NotificationEndpointUrl": f"{location_geofence_browser_notification_api.attr_api_endpoint}/{location_geofence_browser_notification_api_stage}",
+                                                                        "WebsocketDynamoTableName": websocket_connection_table.ref
+                                                                    })
 
         location_geofence_event_rule = events.Rule(self, "LocationGeofenceEventRule",
                                                    description="Rule for Location Service demo to trigger when devices enter/exit a geofence",
