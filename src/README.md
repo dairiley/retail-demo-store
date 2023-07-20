@@ -70,3 +70,22 @@ There is a `swagger-ui` service in the `docker-compose.yml`. You can access it v
 
 The `Dockerfile` of `swagger-ui` copies OpenAPI spec from each service (located at `<serviceName>/openapi/spec.yaml`). If you add a new service, please ensure that you write the OpenAPI spec and update the `Dockerfile` to copy yours.
 
+## CDK (wip)
+
+From the cdk directory (aws/cdk)
+```console
+python3 -m venv .venv
+```
+```console
+source .venv/bin/activate
+```
+```console
+pip install -r requirements.txt
+```
+```console
+cdk bootstrap
+```
+Edit parameters in cdk.json
+```console
+cdk deploy --all
+```
