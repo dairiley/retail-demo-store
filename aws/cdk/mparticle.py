@@ -69,6 +69,7 @@ class MParticleStack(Stack):
                          code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "mParticlePersonalizeLambdaBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/mparticle-personalize.zip"),
                          timeout=Duration.seconds(900),
                          vpc=props['vpc'],
+                         allow_public_subnet=True,
                          vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                          role=mparticle_personalize_lambda_role)
 

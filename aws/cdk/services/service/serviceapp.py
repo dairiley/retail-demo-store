@@ -26,7 +26,7 @@ class ServiceAppStack(Stack):
             "experiment_strategy_table": props['experiment_strategy_table'],
             "resource_bucket": props['resource_bucket'],
             "amazon_pay_signing_lambda": props['amazon_pay_signing_lambda'],
-            "evidently_project_arn": f"arn: aws:evidently:{Aws.REGION}:{Aws.ACCOUNT_ID}:project/{props['evidently_project_name']}",
+            "evidently_project_arn": f"arn:aws:evidently:{Aws.REGION}:{Aws.ACCOUNT_ID}:project/{props['evidently_project_name']}",
             "evidently_project_name": props['evidently_project_name'],
             "container_memory": props['container_memory'],
             "container_cpu": props['container_cpu'],
@@ -45,6 +45,7 @@ class ServiceAppStack(Stack):
             "pinpoint_app_id": props['pinpoint_app_id'],
             "cluster": props['cluster'],
             "desired_count": "1",
+            "log_group": props['log_group'],
             "source_security_group": self.load_balancer.security_group,
             "subnet1": props['subnet1'],
             "subnet2": props['subnet2'],
@@ -57,7 +58,7 @@ class ServiceAppStack(Stack):
 
         pipeline_props = {
             "service_name": props['service_name'],
-            "fargate_service_name": service.fargate_service.service_name,
+            "fargate_service_name": service.fargate_service.attr_name,
             "logging_bucket": props['logging_bucket'],
             "service_path": props['service_path'],
             "user_pool_id": props['user_pool_id'],

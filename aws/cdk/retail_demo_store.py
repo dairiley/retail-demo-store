@@ -1,4 +1,4 @@
-from aws_cdk import aws_ssm as ssm
+from aws_cdk import aws_ec2 as ec2, Fn
 from base.base import BaseStack
 from services.services import ServicesStack
 from web_ui_pipeline import WebUIPipelineStack
@@ -24,20 +24,15 @@ class RetailDemoStoreStack(Stack):
         Set custom values before deployment in cdk.json
         """
 
-        stack_name = CfnParameter(self, "Stack Name", default=self.node.try_get_context("stack_name")).value_as_string
+        stack_name = self.node.try_get_context("stack_name")
 
         deployment_config = self.node.try_get_context("retail_demo_store_deployment_configuration")
-        resource_bucket = CfnParameter(self, "ResourceBucket",
-                                       default=deployment_config["resource_bucket"],
-                                       description=deployment_config["_resource_bucket_description"]).value_as_string
-        resource_bucket_relative_path = deployment_config["resource_bucket_relative_path"]
+        resource_bucket = deployment_config["resource_bucket"]
         resource_bucket_relative_path = deployment_config["resource_bucket_relative_path"]
         create_opensearch_service_role = deployment_config["create_opensearch_service_role"]
 
         source_deployment_approach = self.node.try_get_context("source_deployment_approach")
-        source_deployment_type = CfnParameter(self, "SourceDeploymentType",
-                                       default=source_deployment_approach["source_deployment_type"],
-                                       description=source_deployment_approach["_source_deployment_type_description"]).value_as_string
+        source_deployment_type = source_deployment_approach["source_deployment_type"]
 
         github_repository = source_deployment_approach["github_repository"]
         github_branch = github_repository["github_branch"]
@@ -159,7 +154,7 @@ class RetailDemoStoreStack(Stack):
             "vpc_cidr": base.vpc.vpc_cidr,
             "cluster": base.ecs_cluster.cluster,
             "amazon_pay_signing_lambda": amazonpay.amazon_pay_signing_lambda if amazonpay else False,
-            "service_discovery_namespace": base.service_discovery.name,
+            "service_discovery_namespace": base.service_discovery.namespace_id,
             "products_table": base.tables.products_table,
             "categories_table": base.tables.categories_table,
             "experiment_strategy_table": base.tables.experiment_strategy_table,
@@ -215,6 +210,8 @@ class RetailDemoStoreStack(Stack):
             "resource_bucket": resource_bucket,
             "resource_bucket_relative_path": resource_bucket_relative_path,
             "cidr": base.vpc.vpc_cidr,
+            "subnet1": base.vpc.private_subnet_1,
+            "subnet2": base.vpc.private_subnet_2,
             "user_pool_id": base.authentication.user_pool.ref,
             "user_pool_client_id": base.authentication.user_pool_client.ref,
             "products_service_elb_listener": services.products.load_balancer.listener,
@@ -282,7 +279,7 @@ class RetailDemoStoreStack(Stack):
             "github_branch": github_branch,
             "github_token": github_token,
             "github_user": github_user,
-            "swagger_ui_cdn": base.distribution.swaggerui_distribution,
+            "swagger_ui_cdn": base.distribution.swaggerui_distribution.distribution_id,
             "swagger_ui_bucket_arn": base.distribution.swaggerui_bucket.bucket_arn,
             "swagger_ui_bucket_name": base.distribution.swaggerui_bucket.bucket_name,
             "swagger_ui_root_url": base.distribution.swaggerui_distribution.distribution_domain_name,
@@ -352,7 +349,7 @@ class RetailDemoStoreStack(Stack):
                 "parameter_ivs_video_channel_map": base.ssm.parameter_ivs_video_channel_map.string_value,
                 "pre_create_pinpoint_workshop": pre_create_pinpoint_workshop,
                 "uid": f"{stack_name}-{Aws.REGION}",
-                "vpc":  base.vpc.vpc,
+                "vpc":  vpc,
                 "pinpoint_app_id": base.pinpoint.pinpoint.ref,
                 "pinppint_personalize_role_arn": services.pinpoint_personalize.pinpoint_personalize_role.role_arn,
                 "customize_recommendations_function_arn": services.pinpoint_personalize.customize_recommendations_function.function_arn,
@@ -419,7 +416,7 @@ class RetailDemoStoreStack(Stack):
             #
             # CfnOutput(self, "VpcId",
             #          description="VPC Id.",
-            #          value=base.vpc.vpc.vpc_id)
+            #          value=vpc.vpc_id)
             #
             # CfnOutput(self, "Subnets",
             #          description="Service Subnets.",

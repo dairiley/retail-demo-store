@@ -1,16 +1,20 @@
 import boto3
+import cfnresponse
 
 
 def handler(event, context):
     print(event)
+    responseData = {}
+    responseStatus = cfnresponse.SUCCESS
+
     try:
         registryId = event['ResourceProperties']['RegistryId']
         repositoryName = event['ResourceProperties']['RepositoryName']
 
         if event['RequestType'] == 'Create':
-            print("Repository creation succeeded")
+            responseData['Message'] = "Repository creation succeeded"
         elif event['RequestType'] == 'Update':
-            print("Repository update succeeded")
+            responseData['Message'] = "Repository update succeeded"
         elif event['RequestType'] == 'Delete':
             # Delete the registry
             ecr = boto3.client('ecr')
@@ -19,9 +23,12 @@ def handler(event, context):
                 repositoryName=repositoryName,
                 force=True
             )
-            print("Repository deletion succeeded")
+
+            responseData['Message'] = "Repository deletion succeeded"
 
     except Exception as e:
         print("Error: " + str(e))
+        responseStatus = cfnresponse.FAILED
+        responseData['Message'] = "Repository {} failed: {}".format(event['RequestType'], e)
 
-    return {'RequestType': event['RequestType']}
+    cfnresponse.send(event, context, responseStatus, responseData)

@@ -62,7 +62,9 @@ class SwaggerUIPipelineStack(Stack):
                                                       ],
                                                       resources=[
                                                           artifact_bucket.bucket_arn,
-                                                          props['swagger_ui_bucket_arn']
+                                                          f"{artifact_bucket.bucket_arn}/*",
+                                                          props['swagger_ui_bucket_arn'],
+                                                          f"{props['swagger_ui_bucket_arn']}/*"
                                                       ]
                                                   )
                                               ])
@@ -79,7 +81,10 @@ class SwaggerUIPipelineStack(Stack):
                                                              "s3:GetObjectVersion",
                                                              "s3:GetBucketVersioning"
                                                          ],
-                                                         resources=[artifact_bucket.bucket_arn]
+                                                         resources=[
+                                                             artifact_bucket.bucket_arn,
+                                                             f"{artifact_bucket.bucket_arn}/*"
+                                                         ]
                                                      ),
                                                      iam.PolicyStatement(
                                                          actions=[
@@ -219,9 +224,10 @@ class SwaggerUIPipelineStack(Stack):
                                      role_arn=codepipeline_service_role.role_arn,
                                      artifact_stores=[codepipeline.CfnPipeline.ArtifactStoreMapProperty(
                                          artifact_store=codepipeline.CfnPipeline.ArtifactStoreProperty(
-                                             location=artifact_bucket.ref,
+                                             location=artifact_bucket.bucket_name,
                                              type="S3",
                                          ),
+                                         region=Aws.REGION
                                      )],
                                      stages=[
                                          codepipeline.CfnPipeline.StageDeclarationProperty(
@@ -262,7 +268,7 @@ class SwaggerUIPipelineStack(Stack):
                                                      name="BuildOutput"
                                                  )],
                                                  configuration={
-                                                     "ProjectName": codebuild_project.ref
+                                                     "ProjectName": codebuild_project.project_name
                                                  },
                                                  run_order=1
                                              )]

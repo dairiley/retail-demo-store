@@ -14,6 +14,7 @@ class LoadBalancerStack(Stack):
 
         self.security_group = ec2.SecurityGroup(self, "SecurityGroup",
                                                 vpc=props['vpc'],
+                                                allow_all_outbound=True,
                                                 description=f"{props['stack_name']}/ECS/{props['service_name']}/SecurityGroup")
         self.security_group.add_ingress_rule(ec2.Peer.ipv4(props['cidr']), ec2.Port.tcp(80), "Allow from within the VPC for port 80")
 

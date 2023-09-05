@@ -238,6 +238,7 @@ class DeploymentSupportStack(Stack):
                                                                     timeout=Duration.seconds(300),
                                                                     role=opensearch_pre_index_lambda_role,
                                                                     vpc=props['vpc'],
+                                                                    allow_public_subnet=True,
                                                                     vpc_subnets=ec2.SubnetSelection(subnets=[props['subnet1'], props['subnet2']]),
                                                                     security_groups=[props['opensearch_security_group']])
 

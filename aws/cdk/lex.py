@@ -39,6 +39,7 @@ class LexStack(Stack):
                                                                timeout=Duration.seconds(10),
                                                                role=bot_recommendations_lambda_role,
                                                                vpc=props['vpc'],
+                                                               allow_public_subnet=True,
                                                                vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                                                                environment={
                                                                    "users_service_base_url": props['users_service_external_url'],

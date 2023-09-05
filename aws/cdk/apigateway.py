@@ -7,7 +7,8 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_s3 as s3,
     aws_apigatewayv2 as apigatewayv2,
-    aws_logs as logs
+    aws_logs as logs,
+    RemovalPolicy
 )
 from constructs import Construct
 
@@ -39,8 +40,8 @@ class ApiGatewayStack(Stack):
 
         vpc_link = apigatewayv2.CfnVpcLink(self, "VpcLink",
                                            name=f"{props['stack_name']}-VPCLink",
-                                           subnet_ids=[],#@todo
-                                           security_group_ids=["securityGroupIds"])#@todo
+                                           subnet_ids=[props['subnet1'].subnet_id, props['subnet2'].subnet_id],
+                                           security_group_ids=[security_group.security_group_id])
 
         self.http_api = apigatewayv2.CfnApi(self, "HttpAPI",
                                             name=f"{props['stack_name']}-APIGateway",
@@ -48,7 +49,7 @@ class ApiGatewayStack(Stack):
                                             cors_configuration=apigatewayv2.CfnApi.CorsProperty(
                                                 allow_credentials=False,
                                                 allow_headers=["accept", "accept-encoding", "authorization", "content-length",
-                                                               "content-type", "x-csrff-token"],
+                                                               "content-type", "x-csrf-token"],
                                                 allow_methods=["GET", "OPTIONS", "POST", "PUT"],
                                                 allow_origins=["*"],
                                                 expose_headers=["*"],
@@ -253,6 +254,13 @@ class ApiGatewayStack(Stack):
                               authorizer_id=lambda_authorizer.ref,
                               target=f"integrations/{carts_service_integration.ref}")
 
+        apigatewayv2.CfnRoute(self, "GetCartbyUsername",
+                              api_id=self.http_api.attr_api_id,
+                              route_key="GET /carts",
+                              authorization_type="CUSTOM",
+                              authorizer_id=lambda_authorizer.ref,
+                              target=f"integrations/{carts_service_integration.ref}")
+
         apigatewayv2.CfnRoute(self, "UpdateCart",
                               api_id=self.http_api.attr_api_id,
                               route_key="PUT /carts/{cartId}",
@@ -388,7 +396,8 @@ class ApiGatewayStack(Stack):
 
         access_logs = logs.LogGroup(self, "AccessLogs",
                                     log_group_name=f"{props['stack_name']}/APIAccessLogs",
-                                    retention=logs.RetentionDays.ONE_MONTH)
+                                    retention=logs.RetentionDays.ONE_MONTH,
+                                    removal_policy=RemovalPolicy.DESTROY)
 
         http_api_stage = apigatewayv2.CfnStage(self, "HttpApiStage",
                                                stage_name="$default",

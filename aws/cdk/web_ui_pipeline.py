@@ -9,7 +9,8 @@ from aws_cdk import (
     aws_s3 as s3,
     aws_codebuild as codebuild,
     aws_codepipeline as codepipeline,
-    CustomResource
+    CustomResource,
+    BundlingOptions
 )
 from constructs import Construct
 
@@ -39,7 +40,9 @@ class WebUIPipelineStack(Stack):
                                                           ],
                                                           resources=[
                                                               f"arn:aws:s3:::{props['resource_bucket']}",
-                                                              props['web_ui_bucket'].bucket_arn
+                                                              props['web_ui_bucket'].bucket_arn,
+                                                              f"arn:aws:s3:::{props['resource_bucket']}/*",
+                                                              f"{props['web_ui_bucket'].bucket_arn}/*"
                                                           ]
                                                       )
                                                   ])
@@ -49,7 +52,14 @@ class WebUIPipelineStack(Stack):
                                                        runtime=lambda_.Runtime.PYTHON_3_7,
                                                        description="Retail Demo Store deployment utility function that copies catalog images from staging bucket to Web UI bucket",
                                                        handler="index.handler",
-                                                       code=lambda_.Code.from_asset("services/lambda/copy_images"),
+                                                       code=lambda_.Code.from_asset("services/lambda/copy_images",
+                                                                      bundling=BundlingOptions(
+                                                                          image=lambda_.Runtime.PYTHON_3_7.bundling_image,
+                                                                          command=[
+                                                                              "bash", "-c",
+                                                                              "pip install --no-cache -r requirements.txt -t /asset-output && cp -au . /asset-output"
+                                                                          ],
+                                                                      )),
                                                        timeout=Duration.seconds(900),
                                                        role=copy_images_execution_role)
 
@@ -86,8 +96,8 @@ class WebUIPipelineStack(Stack):
                                                               "logs:CreateLogGroup",
                                                               "logs:CreateLogStream",
                                                               "logs:PutLogEvents",
-                                                              "ssm:GetParameters",
-                                                              "cloudfront:CreateInvalidation"
+                                                              "cloudfront:CreateInvalidation",
+                                                              "ssm:GetParameters"
                                                           ],
                                                           resources=["*"]
                                                       )
@@ -102,7 +112,9 @@ class WebUIPipelineStack(Stack):
                                                           ],
                                                           resources=[
                                                               artifact_bucket.bucket_arn,
-                                                              props['web_ui_bucket'].bucket_arn
+                                                              f"{artifact_bucket.bucket_arn}/*",
+                                                              props['web_ui_bucket'].bucket_arn,
+                                                              f"{props['web_ui_bucket'].bucket_arn}/*"
                                                           ]
                                                       )
                                                   ])
@@ -119,7 +131,10 @@ class WebUIPipelineStack(Stack):
                                                              "s3:GetObjectVersion",
                                                              "s3:GetBucketVersioning"
                                                          ],
-                                                         resources=[artifact_bucket.bucket_arn]
+                                                         resources=[
+                                                             artifact_bucket.bucket_arn,
+                                                             f"{artifact_bucket.bucket_arn}/*"
+                                                         ]
                                                      ),
                                                      iam.PolicyStatement(
                                                          actions=[
@@ -147,7 +162,7 @@ class WebUIPipelineStack(Stack):
                                               build_spec=codebuild.BuildSpec.from_asset("../../src/web-ui/buildspec.yml"),
                                               environment=codebuild.BuildEnvironment(
                                                   compute_type=codebuild.ComputeType.SMALL,
-                                                  build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
+                                                  build_image=codebuild.LinuxBuildImage.AMAZON_LINUX_2_5,
                                                   environment_variables={
                                                       "PRODUCTS_SERVICE_URL": codebuild.BuildEnvironmentVariable(
                                                           value=props['api_gateway_url']
@@ -183,15 +198,12 @@ class WebUIPipelineStack(Stack):
                                                           value=props['pinpoint_app_id']
                                                       ),
                                                       "PERSONALIZE_TRACKING_ID": codebuild.BuildEnvironmentVariable(
-                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE,
                                                           value=props['parameter_personalize_event_tracker_id']
                                                       ),
                                                       "AMPLITUDE_API_KEY": codebuild.BuildEnvironmentVariable(
-                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE,
                                                           value=props['parameter_amplitude_api_key']
                                                       ),
                                                       "OPTIMIZELY_SDK_KEY": codebuild.BuildEnvironmentVariable(
-                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE,
                                                           value=props['parameter_optimizely_sdk_key']
                                                       ),
                                                       "WEB_ROOT_URL": codebuild.BuildEnvironmentVariable(
@@ -207,10 +219,10 @@ class WebUIPipelineStack(Stack):
                                                           value=props['user_pool_client_id']
                                                       ),
                                                       "WEB_BUCKET_NAME": codebuild.BuildEnvironmentVariable(
-                                                          value=props['identity_pool_id']
+                                                          value=props['web_ui_bucket'].bucket_name
                                                       ),
                                                       "COGNITO_IDENTITY_POOL_ID": codebuild.BuildEnvironmentVariable(
-                                                          value=props['web_ui_bucket'].bucket_name
+                                                          value=props['identity_pool_id']
                                                       ),
                                                       "CLOUDFRONT_DIST_ID": codebuild.BuildEnvironmentVariable(
                                                           value=props['web_ui_cdn']
@@ -231,11 +243,9 @@ class WebUIPipelineStack(Stack):
                                                           value=props['location_notification_endpoint']
                                                       ),
                                                       "SEGMENT_WRITE_KEY": codebuild.BuildEnvironmentVariable(
-                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE,
                                                           value=props['parameter_segment_write_key']
                                                       ),
                                                       "GOOGLE_ANALYTICS_ID": codebuild.BuildEnvironmentVariable(
-                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE,
                                                           value=props['google_analytics_measurement_id']
                                                       ),
                                                       "FENIX_ZIP_DETECT_URL": codebuild.BuildEnvironmentVariable(
@@ -294,7 +304,7 @@ class WebUIPipelineStack(Stack):
                                                      "Owner": props['github_user'],
                                                      "Repo": props['github_repo'],
                                                      "Branch": props['github_branch'],
-                                                     "oauth_token": props['github_token']
+                                                     "OAuthToken": props['github_token']
                                                  },
                                                  run_order=1
                                              )]
@@ -333,9 +343,10 @@ class WebUIPipelineStack(Stack):
                                      role_arn=codepipeline_service_role.role_arn,
                                      artifact_stores=[codepipeline.CfnPipeline.ArtifactStoreMapProperty(
                                          artifact_store=codepipeline.CfnPipeline.ArtifactStoreProperty(
-                                             location=artifact_bucket.ref,
+                                             location=artifact_bucket.bucket_name,
                                              type="S3",
                                          ),
+                                         region=Aws.REGION
                                      )],
                                      stages=[
                                          codepipeline.CfnPipeline.StageDeclarationProperty(
@@ -376,7 +387,7 @@ class WebUIPipelineStack(Stack):
                                                      name="BuildOutput"
                                                  )],
                                                  configuration={
-                                                     "ProjectName": codebuild_project.ref
+                                                     "ProjectName": codebuild_project.project_name
                                                  },
                                                  run_order=1
                                              )]

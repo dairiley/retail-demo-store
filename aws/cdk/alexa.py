@@ -7,6 +7,7 @@ from aws_cdk import (
     aws_lambda as lambda_,
     aws_logs as logs,
     aws_s3 as s3,
+    RemovalPolicy
 )
 from constructs import Construct
 
@@ -56,6 +57,7 @@ class AlexaStack(Stack):
                                                      role=alexa_skill_role,
                                                      memory_size=512,
                                                      vpc=props['vpc'],
+                                                     allow_public_subnet=True,
                                                      vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                                                      environment={
                                                          "OrdersServiceExternalUrl": props['orders_service_external_url'],
@@ -78,4 +80,5 @@ class AlexaStack(Stack):
 
         logs.LogGroup(self, "ACMImportCertLambdaFunLogGroup",
                       log_group_name=f"/aws/lambda/{self.alexa_skill_function.function_name}",
-                      retention=logs.RetentionDays.TWO_WEEKS)
+                      retention=logs.RetentionDays.TWO_WEEKS,
+                      removal_policy=RemovalPolicy.DESTROY)

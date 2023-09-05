@@ -67,6 +67,7 @@ class SegmentStack(Stack):
                          timeout=Duration.seconds(900),
                          role=segment_personalize_destination_lambda_execution_role,
                          vpc=props['vpc'],
+                         allow_public_subnet=True,
                          vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                          environment={
                              "personalize_campaign_id": "",

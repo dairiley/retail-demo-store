@@ -67,6 +67,7 @@ class PinpointPersonalizeStack(Stack):
                                                                    code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "CustomizeRecommendationsFunctionBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/pinpoint-recommender.zip"),
                                                                    role=customize_recommendations_lambda_role,
                                                                    vpc=props['vpc'],
+                                                                   allow_public_subnet=True,
                                                                    vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                                                                    environment={"recommendations_service_host": props['recommendations_service_dns_name']})
         self.customize_recommendations_function.add_permission("PinpointPermission",
@@ -81,6 +82,7 @@ class PinpointPersonalizeStack(Stack):
                                                                           code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "CustomizeOffersRecommendationsFunctionBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/pinpoint-offers-recommender.zip"),
                                                                           role=customize_recommendations_lambda_role,
                                                                           vpc=props['vpc'],
+                                                                          allow_public_subnet=True,
                                                                           vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                                                                           environment={
                                                                               "recommendations_service_host": props['recommendations_service_dns_name'],
@@ -138,7 +140,7 @@ class PinpointPersonalizeStack(Stack):
                                                  ),
                                                  iam.PolicyStatement(
                                                      sid="Allow Amazon Pinpoint to use this key",
-                                                     principals=[iam.ServicePrincipal("ms-voice.amazonaws.com")],
+                                                     principals=[iam.ServicePrincipal("sms-voice.amazonaws.com")],
                                                      actions=[
                                                          "kms:GenerateDataKey*",
                                                          "kms:Decrypt"

@@ -3,7 +3,7 @@ from aws_cdk import App
 
 app = App()
 
-RetailDemoStoreStack(app, "retail-demo-store5",
+RetailDemoStoreStack(app, "retail-demo-store",
                      description="RETAIL_DS: This deploys the Retail Demo Store reference architecture and workshop notebooks. (uksb-1t80l2nq1)")
 
 app.synth()

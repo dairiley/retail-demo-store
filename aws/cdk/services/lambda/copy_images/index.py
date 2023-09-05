@@ -1,8 +1,13 @@
 import boto3
+import cfnresponse
 
 
 def handler(event, context):
     print(event)
+
+    response_data = {}
+    response_status = cfnresponse.SUCCESS
+
     try:
         source_bucket_name = event['ResourceProperties']['SourceBucket']
         source_path = event['ResourceProperties']['SourceBucketPath']
@@ -24,11 +29,13 @@ def handler(event, context):
                     target = target_bucket.Object(obj.key)
                 target.copy(source)
 
-            print("Resource creation succeeded")
+            response_data['Message'] = "Resource creation succeeded"
         elif event['RequestType'] == 'Delete':
-            print("Resource deletion succeeded")
+            response_data['Message'] = "Resource deletion succeeded"
 
     except Exception as e:
         print("Error: " + str(e))
+        response_status = cfnresponse.FAILED
+        response_data['Message'] = "Resource {} failed: {}".format(event['RequestType'], e)
 
-    return {'RequestType': event['RequestType']}
+    cfnresponse.send(event, context, response_status, response_data)

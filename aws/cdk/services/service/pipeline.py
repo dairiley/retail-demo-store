@@ -1,7 +1,6 @@
 from aws_cdk import (
     Stack,
     Aws,
-    Duration,
     aws_ecr as ecr,
     aws_s3 as s3,
     RemovalPolicy,
@@ -59,8 +58,7 @@ class PipelineStack(Stack):
                                         "logs:CreateLogGroup",
                                         "logs:CreateLogStream",
                                         "logs:PutLogEvents",
-                                        "ecr:GetAuthorizationToken",
-                                        "ssm:GetParameters"
+                                        "ecr:GetAuthorizationToken"
                                     ],
                                     resources=["*"])]
                                 ),
@@ -84,7 +82,11 @@ class PipelineStack(Stack):
                                             "s3:PutObject",
                                             "s3:GetObjectVersion"
                                         ],
-                                        resources=[artifact_bucket.bucket_arn])]
+                                        resources=[
+                                            artifact_bucket.bucket_arn,
+                                            f"{artifact_bucket.bucket_arn}/*"
+                                        ]
+                                    )]
                                 ),
                             })
 
@@ -157,23 +159,29 @@ class PipelineStack(Stack):
                                             "s3:PutObject",
                                             "s3:GetObjectVersion"
                                         ],
-                                        resources=[artifact_bucket.bucket_arn])]
+                                        resources=[
+                                            artifact_bucket.bucket_arn,
+                                            f"{artifact_bucket.bucket_arn}/*"
+                                        ])]
                                 ),
                             })
 
         codebuild_project = codebuild.Project(self, "CodeBuildProject",
                                               role=codebuild_service_role,
-                                              project_name=props['stack_name'],
                                               build_spec=codebuild.BuildSpec.from_asset(f"../../{props['service_path']}/buildspec.yml"),
                                               environment=codebuild.BuildEnvironment(
                                                   compute_type=codebuild.ComputeType.SMALL,
-                                                  build_image=codebuild.LinuxBuildImage.from_docker_registry("aws/codebuild/docker:17.09.0"),
+                                                  build_image=codebuild.LinuxBuildImage.STANDARD_5_0,
+                                                  privileged=True,
                                                   environment_variables={
                                                       "AWS_DEFAULT_REGION": codebuild.BuildEnvironmentVariable(
                                                           value=Aws.REGION
                                                       ),
+                                                      "AWS_ACCOUNT_ID": codebuild.BuildEnvironmentVariable(
+                                                          value=Aws.ACCOUNT_ID
+                                                      ),
                                                       "REPOSITORY_URI": codebuild.BuildEnvironmentVariable(
-                                                          value=repository.repository_arn
+                                                          value=repository.repository_uri
                                                       ),
                                                       "SERVICE_PATH": codebuild.BuildEnvironmentVariable(
                                                           value=props['service_path']
@@ -218,15 +226,12 @@ class PipelineStack(Stack):
                                                           value=props['pinpoint_app_id']
                                                       ),
                                                       "PERSONALIZE_TRACKING_ID": codebuild.BuildEnvironmentVariable(
-                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE,
                                                           value=props['parameter_personalize_event_tracker_id']
                                                       ),
                                                       "AMPLITUDE_API_KEY": codebuild.BuildEnvironmentVariable(
-                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE,
                                                           value=props['parameter_amplitude_api_key']
                                                       ),
                                                       "OPTIMIZELY_SDK_KEY": codebuild.BuildEnvironmentVariable(
-                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE,
                                                           value=props['parameter_optimizely_sdk_key']
                                                       ),
                                                       "WEB_ROOT_URL": codebuild.BuildEnvironmentVariable(
@@ -325,9 +330,10 @@ class PipelineStack(Stack):
                                      role_arn=codepipeline_service_role.role_arn,
                                      artifact_stores=[codepipeline.CfnPipeline.ArtifactStoreMapProperty(
                                          artifact_store=codepipeline.CfnPipeline.ArtifactStoreProperty(
-                                             location=artifact_bucket.ref,
+                                             location=artifact_bucket.bucket_name,
                                              type="S3",
                                          ),
+                                         region=Aws.REGION
                                      )],
                                      stages=[
                                          codepipeline.CfnPipeline.StageDeclarationProperty(
@@ -368,7 +374,7 @@ class PipelineStack(Stack):
                                                      name="BuildOutput"
                                                  )],
                                                  configuration={
-                                                     "ProjectName": codebuild_project.ref
+                                                     "ProjectName": codebuild_project.project_name
                                                  },
                                                  run_order=1
                                              )]

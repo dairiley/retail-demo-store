@@ -1,4 +1,4 @@
-from aws_cdk import Aws, Stack, aws_iam as iam
+from aws_cdk import Aws, Stack, aws_ec2 as ec2
 from .authentication import AuthenticationStack
 from .buckets import BucketStack
 from .cloudfront import CloudFrontStack
@@ -37,6 +37,13 @@ class BaseStack(Stack):
         }
         self.vpc = VpcStack(self, "Vpc",
                             vpc_props)
+        # The route associations for the private subnets will conflict if creation is attempted before the VPC stack deploys
+        ec2.CfnSubnetRouteTableAssociation(self, "PrivateSubnet1RouteTableAssociation",
+                                           route_table_id=self.vpc.private_subnet_1_route_table.ref,
+                                           subnet_id=self.vpc.private_subnet_1.subnet_id)
+        ec2.CfnSubnetRouteTableAssociation(self, "PrivateSubnet2RouteTableAssociation",
+                                           route_table_id=self.vpc.private_subnet_2_route_table.ref,
+                                           subnet_id=self.vpc.private_subnet_2.subnet_id)
 
         bucket_props = {
             "cleanup_bucket_lambda_arn": props['cleanup_bucket_lambda_arn']
@@ -92,6 +99,7 @@ class BaseStack(Stack):
 
         codecommit_props = {
             "resource_bucket": props['resource_bucket'],
+            "resource_bucket_relative_path": props['resource_bucket_relative_path'],
             "source_deployment_type": props['source_deployment_type']
         }
         CodeCommitStack(self, "CodeCommitRepository",
@@ -99,7 +107,8 @@ class BaseStack(Stack):
 
         cloudfront_props = {
             "cleanup_bucket_lambda_arn": props['cleanup_bucket_lambda_arn'],
-            "logging_bucket": self.buckets.logging_bucket
+            "logging_bucket": self.buckets.logging_bucket,
+            "stack_name": props['stack_name']
         }
         self.distribution = CloudFrontStack(self, "CloudFront",
                                             props=cloudfront_props)

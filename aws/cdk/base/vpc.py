@@ -19,49 +19,25 @@ class VpcStack(Stack):
                            enable_dns_support=True,
                            subnet_configuration=[
                                ec2.SubnetConfiguration(
-                                   name="PublicSubnet1",
-                                   cidr_mask=24,
-                                   subnet_type=ec2.SubnetType.PUBLIC
+                                   name="PublicSubnets",
+                                   subnet_type=ec2.SubnetType.PUBLIC,
+                                   cidr_mask=24
                                ),
                                ec2.SubnetConfiguration(
-                                   name="PublicSubnet2",
-                                   cidr_mask=24,
-                                   subnet_type=ec2.SubnetType.PUBLIC
+                                   name="PrivateSubnets",
+                                   subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
+                                   cidr_mask=24
                                ),
-                               ec2.SubnetConfiguration(
-                                   name="PrivateSubnet1",
-                                   cidr_mask=24,
-                                   subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
-                               ),
-                               ec2.SubnetConfiguration(
-                                   name="PrivateSubnet2",
-                                   cidr_mask=24,
-                                   subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
-                               )
                            ])
         Tags.of(self.vpc).add("Name", props['stack_name'])
 
         """
-        Public Subnet 1
+        Public Subnets
         """
 
-        self.public_subnet_1 = ec2.Subnet(self, "PublicSubnet1",
-                                          vpc_id=self.vpc.vpc_id,
-                                          availability_zone=self.vpc.availability_zones[0],
-                                          cidr_block="10.215.30.0/24",
-                                          map_public_ip_on_launch=True)
-        Tags.of(self.public_subnet_1).add("Name", f"{props['stack_name']}/VPC/PublicSubnet1")
-
-        """
-        Public Subnet 1
-        """
-
-        self.public_subnet_2 = ec2.Subnet(self, "PublicSubnet2",
-                                          vpc_id=self.vpc.vpc_id,
-                                          availability_zone=self.vpc.availability_zones[1],
-                                          cidr_block="10.215.40.0/24",
-                                          map_public_ip_on_launch=True)
-        Tags.of(self.public_subnet_2).add("Name", f"{props['stack_name']}/VPC/PublicSubnet2")
+        public_subnets = self.vpc.select_subnets(subnet_type=ec2.SubnetType.PUBLIC).subnets
+        self.public_subnet_1 = public_subnets[0]
+        self.public_subnet_2 = public_subnets[1]
 
         public_route_table = ec2.CfnRouteTable(self, "PublicRouteTable",
                                                vpc_id=self.vpc.vpc_id)
@@ -71,6 +47,10 @@ class VpcStack(Stack):
                      route_table_id=public_route_table.ref,
                      destination_cidr_block="0.0.0.0/0",
                      gateway_id=self.vpc.internet_gateway_id)
+
+        ec2.CfnSubnetRouteTableAssociation(self, "PublicSubnet1RouteTableAssociation",
+                                           route_table_id=public_route_table.ref,
+                                           subnet_id=self.public_subnet_1.subnet_id)
 
         public_subnet_1_eip = ec2.CfnEIP(self, "PublicSubnet1EIP",
                                          domain="vpc",
@@ -86,6 +66,10 @@ class VpcStack(Stack):
                                                             key="Name",
                                                             value=f"{props['stack_name']}/VPC/NatGateway1"
                                                         )])
+
+        ec2.CfnSubnetRouteTableAssociation(self, "PublicSubnet2RouteTableAssociation",
+                                           route_table_id=public_route_table.ref,
+                                           subnet_id=self.public_subnet_2.subnet_id)
 
         public_subnet_2_eip = ec2.CfnEIP(self, "PublicSubnet2EIP",
                                          domain="vpc",
@@ -103,42 +87,28 @@ class VpcStack(Stack):
                                                         )])
 
         """
-        Private Subnet 1
+        Private Subnets
         """
 
-        self.private_subnet_1 = ec2.Subnet(self, "PrivateSubnet1",
-                                  vpc_id=self.vpc.vpc_id,
-                                  availability_zone=self.vpc.availability_zones[0],
-                                  cidr_block="10.215.10.0/24",
-                                  map_public_ip_on_launch=False)
-        Tags.of(self.private_subnet_1).add("Name", f"{props['stack_name']}/VPC/PrivateSubnet1")
+        private_subnets = self.vpc.select_subnets(subnet_type=ec2.SubnetType.PRIVATE_ISOLATED).subnets
+        self.private_subnet_1 = private_subnets[0]
+        self.private_subnet_2 = private_subnets[1]
 
-        private_subnet_1_route_table = ec2.CfnRouteTable(self, "PrivateSubnet1RouteTable",
+        self.private_subnet_1_route_table = ec2.CfnRouteTable(self, "PrivateSubnet1RouteTable",
                                                          vpc_id=self.vpc.vpc_id)
-        Tags.of(private_subnet_1_route_table).add("Name", f"{props['stack_name']}/VPC/PrivateSubnetRouteTable")
+        Tags.of(self.private_subnet_1_route_table).add("Name", f"{props['stack_name']}/VPC/PrivateSubnetRouteTable")
 
         ec2.CfnRoute(self, "PrivateSubnet1DefaultRoute",
-                     route_table_id=private_subnet_1_route_table.ref,
+                     route_table_id=self.private_subnet_1_route_table.ref,
                      destination_cidr_block="0.0.0.0/0",
                      nat_gateway_id=public_subnet_1_nat_gateway.ref)
 
-        """
-        Private Subnet 2
-        """
-
-        self.private_subnet_2 = ec2.Subnet(self, "PrivateSubnet2",
-                                  vpc_id=self.vpc.vpc_id,
-                                  availability_zone=self.vpc.availability_zones[1],
-                                  cidr_block="10.215.20.0/24",
-                                  map_public_ip_on_launch=False)
-        Tags.of(self.private_subnet_2).add("Name", f"{props['stack_name']}/VPC/PublicSubnet2")
-
-        private_subnet_2_route_table = ec2.CfnRouteTable(self, "PrivateSubnet2RouteTable",
+        self.private_subnet_2_route_table = ec2.CfnRouteTable(self, "PrivateSubnet2RouteTable",
                                                          vpc_id=self.vpc.vpc_id)
-        Tags.of(private_subnet_1_route_table).add("Name", f"{props['stack_name']}/VPC/PrivateSubnet2RouteTable")
+        Tags.of(self.private_subnet_2_route_table).add("Name", f"{props['stack_name']}/VPC/PrivateSubnet2RouteTable")
 
         ec2.CfnRoute(self, "PrivateSubnet2DefaultRoute",
-                     route_table_id=private_subnet_2_route_table.ref,
+                     route_table_id=self.private_subnet_2_route_table.ref,
                      destination_cidr_block="0.0.0.0/0",
                      nat_gateway_id=public_subnet_2_nat_gateway.ref)
 
@@ -146,4 +116,4 @@ class VpcStack(Stack):
         ec2.CfnVPCEndpoint(self, "S3Endpoint",
                            service_name=f"com.amazonaws.{Aws.REGION}.s3",
                            vpc_id=self.vpc.vpc_id,
-                           route_table_ids=[private_subnet_1_route_table.ref, private_subnet_2_route_table.ref])
+                           route_table_ids=[self.private_subnet_1_route_table.ref, self.private_subnet_2_route_table.ref])

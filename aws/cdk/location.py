@@ -11,7 +11,8 @@ from aws_cdk import (
     aws_dynamodb as dynamodb,
     aws_ec2 as ec2,
     aws_s3 as s3,
-    CustomResource
+    CustomResource,
+    RemovalPolicy
 )
 from constructs import Construct
 
@@ -33,7 +34,10 @@ class LocationStack(Stack):
                                                                ),
                                                                iam.PolicyStatement(
                                                                    actions=["s3:GetObject"],
-                                                                   resources=[f"arn:aws:s3:::{props['resource_bucket']}"]
+                                                                   resources=[
+                                                                       f"arn:aws:s3:::{props['resource_bucket']}",
+                                                                       f"arn:aws:s3:::{props['resource_bucket']}/*"
+                                                                   ]
                                                                ),
                                                                iam.PolicyStatement(
                                                                    actions=[
@@ -88,7 +92,8 @@ class LocationStack(Stack):
         self.location_resource_name = resource.get_att_string("LocationResourceName")
 
         location_geofence_event_log_group = logs.LogGroup(self, "LocationGeofenceEventLogGroup",
-                                                          log_group_name=f"/aws/events/location-Monitor")
+                                                          log_group_name=f"/aws/events/location-Monitor",
+                                                          removal_policy=RemovalPolicy.DESTROY)
 
         websocket_connection_table = dynamodb.CfnTable(self, "WebSocketConnectionTable",
                                                        key_schema=[dynamodb.CfnTable.KeySchemaProperty(
@@ -106,6 +111,7 @@ class LocationStack(Stack):
         """
 
         location_geofence_browser_notification_api = apigatewayv2.CfnApi(self, "LocationGeofenceBrowserNotificationApi",
+                                                                         protocol_type="WEBSOCKET",
                                                                          name="LocationNrfDemo",
                                                                          route_selection_expression="$request.body.action")
 
@@ -157,7 +163,7 @@ class LocationStack(Stack):
                                                                        "dynamodb:UpdateItem",
                                                                        "dynamodb:DeleteItem"
                                                                    ],
-                                                                   resources=[websocket_connection_table.ref]
+                                                                   resources=[websocket_connection_table.attr_arn]
                                                                ),
                                                                iam.PolicyStatement(
                                                                    actions=["execute-api:ManageConnections"],
@@ -179,6 +185,7 @@ class LocationStack(Stack):
                                                                     timeout=Duration.seconds(900),
                                                                     role=location_geofence_event_handler_role,
                                                                     vpc=props['vpc'],
+                                                                    allow_public_subnet=True,
                                                                     vpc_subnets=ec2.SubnetSelection(subnets=[props['private_subnet1'], props['private_subnet2']]),
                                                                     environment={
                                                                         "UserPoolId": props['user_pool_id'],
@@ -199,7 +206,7 @@ class LocationStack(Stack):
                                                    event_pattern=events.EventPattern(
                                                        source=["aws.geo"],
                                                        detail={
-                                                           "EventType": "ENTER"
+                                                           "EventType": ["ENTER"]
                                                        },
                                                        detail_type=["Location Geofence Event"],
                                                        resources=[f"arn:aws:geo:{Aws.REGION}:{Aws.ACCOUNT_ID}:geofence-collection/location"]
@@ -274,7 +281,7 @@ class LocationStack(Stack):
                                                                                          route_key="$connect",
                                                                                          authorization_type="NONE",
                                                                                          operation_name="ConnectRoute",
-                                                                                         target=f"/integrations{location_geofence_websocket_connection_integration.ref}")
+                                                                                         target=f"integrations/{location_geofence_websocket_connection_integration.ref}")
 
         location_geofence_websocket_disconnect_integration = apigatewayv2.CfnIntegration(self, "LocationGeofenceWebsocketDisconnectIntegration",
                                                                                          api_id=location_geofence_browser_notification_api.attr_api_id,
@@ -285,7 +292,7 @@ class LocationStack(Stack):
                                                                                          route_key="$disconnect",
                                                                                          authorization_type="NONE",
                                                                                          operation_name="DisconnectRoute",
-                                                                                         target=f"/integrations{location_geofence_websocket_disconnect_integration.ref}")
+                                                                                         target=f"integrations/{location_geofence_websocket_disconnect_integration.ref}")
 
         api_deployment.add_dependency(location_geofence_browser_notification_api_connect_route)
         api_deployment.add_dependency(location_geofence_browser_notification_api_disconnect_route)

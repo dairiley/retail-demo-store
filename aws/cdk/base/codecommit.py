@@ -9,15 +9,12 @@ class CodeCommitStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         if props['source_deployment_type'] == "CodeCommit":
-            repo = codecommit.Repository(self, "SourceRepository",
-                                  repository_name="retaildemostore-src",
-                                  description="CodeCommit Repo for the Retail Demo Store source code")
-
-            # Use escape hatch to add S3 code source as S3 is currently only supported by L1 constructs
-            cfn_repo = repo.node.default_child
-            cfn_repo.CodeProperty(
-                s3=codecommit.CfnRepository.S3Property(
-                    bucket=props['resource_bucket'],
-                    key=f"{props['resource_bucket'].bucket_name}source/retaildemostore-source.zip"
-                )
-            )
+            codecommit.CfnRepository(self, "SourceRepository",
+                                     repository_name="retaildemostore-src",
+                                     repository_description="CodeCommit Repo for the Retail Demo Store source code",
+                                     code=codecommit.CfnRepository.CodeProperty(
+                                         s3=codecommit.CfnRepository.S3Property(
+                                             bucket=props['resource_bucket'],
+                                             key=f"{props['resource_bucket_relative_path']}source/retaildemostore-source.zip"
+                                         )
+                                     ))
