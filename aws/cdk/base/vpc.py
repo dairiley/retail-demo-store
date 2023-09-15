@@ -39,17 +39,17 @@ class VpcStack(Stack):
         self.public_subnet_1 = public_subnets[0]
         self.public_subnet_2 = public_subnets[1]
 
-        public_route_table = ec2.CfnRouteTable(self, "PublicRouteTable",
+        self.public_route_table = ec2.CfnRouteTable(self, "PublicRouteTable",
                                                vpc_id=self.vpc.vpc_id)
-        Tags.of(public_route_table).add("Name", f"{props['stack_name']}/VPC/PublicRouteTable")
+        Tags.of(self.public_route_table).add("Name", f"{props['stack_name']}/VPC/PublicRouteTable")
 
         ec2.CfnRoute(self, "PublicDefaultRoute",
-                     route_table_id=public_route_table.ref,
+                     route_table_id=self.public_route_table.ref,
                      destination_cidr_block="0.0.0.0/0",
                      gateway_id=self.vpc.internet_gateway_id)
 
         ec2.CfnSubnetRouteTableAssociation(self, "PublicSubnet1RouteTableAssociation",
-                                           route_table_id=public_route_table.ref,
+                                           route_table_id=self.public_route_table.ref,
                                            subnet_id=self.public_subnet_1.subnet_id)
 
         public_subnet_1_eip = ec2.CfnEIP(self, "PublicSubnet1EIP",
@@ -66,10 +66,6 @@ class VpcStack(Stack):
                                                             key="Name",
                                                             value=f"{props['stack_name']}/VPC/NatGateway1"
                                                         )])
-
-        ec2.CfnSubnetRouteTableAssociation(self, "PublicSubnet2RouteTableAssociation",
-                                           route_table_id=public_route_table.ref,
-                                           subnet_id=self.public_subnet_2.subnet_id)
 
         public_subnet_2_eip = ec2.CfnEIP(self, "PublicSubnet2EIP",
                                          domain="vpc",

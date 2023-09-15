@@ -75,8 +75,12 @@ class NotebookStack(Stack):
                                             ],
                                             resources=[
                                                 props['stack_bucket_arn'],
-                                                f"arn:aws:s3:::{props['resource_bucket']}"
+                                                f"{props['stack_bucket_arn']}/*"
                                             ]
+                                        ),
+                                        iam.PolicyStatement(
+                                            actions=["s3:GetObject"],
+                                            resources=[f"arn:aws:s3:::{props['resource_bucket']}/{props['resource_bucket_relative_path']}csvs/*"]
                                         ),
                                         iam.PolicyStatement(
                                             actions=[

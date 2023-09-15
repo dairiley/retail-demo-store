@@ -37,7 +37,10 @@ class BaseStack(Stack):
         }
         self.vpc = VpcStack(self, "Vpc",
                             vpc_props)
-        # The route associations for the private subnets will conflict if creation is attempted before the VPC stack deploys
+        # The route associations for the other 3 subnets will conflict if creation is attempted before the VPC stack deploys
+        ec2.CfnSubnetRouteTableAssociation(self, "PublicSubnet2RouteTableAssociation",
+                                           route_table_id=self.vpc.public_route_table.ref,
+                                           subnet_id=self.vpc.public_subnet_2.subnet_id)
         ec2.CfnSubnetRouteTableAssociation(self, "PrivateSubnet1RouteTableAssociation",
                                            route_table_id=self.vpc.private_subnet_1_route_table.ref,
                                            subnet_id=self.vpc.private_subnet_1.subnet_id)
@@ -135,6 +138,7 @@ class BaseStack(Stack):
             "parent_stack_name": props['stack_name'],
             "stack_bucket_arn": self.buckets.stack_bucket.bucket_arn,
             "resource_bucket": props['resource_bucket'],
+            "resource_bucket_relative_path": props['resource_bucket_relative_path'],
             "experiment_strategy_table_arn": self.tables.experiment_strategy_table.attr_arn,
             "evidently_project_name": self.evidently_project_name,
             "user_pool_arn": self.authentication.user_pool.attr_arn,

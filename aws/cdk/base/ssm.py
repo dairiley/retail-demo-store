@@ -81,17 +81,17 @@ class SsmStack(Stack):
 
         if props['amplitude_api_key'] == "":
             props['amplitude_api_key'] = "NONE"
-        ssm.StringParameter(self, "ParameterAmplitudeApiKey",
-                            parameter_name="retaildemostore-amplitude-api-key",
-                            string_value=props['amplitude_api_key'],
-                            description="Retail Demo Store Amplitude API key")
+        self.parameter_amplitude_api_key = ssm.StringParameter(self, "ParameterAmplitudeApiKey",
+                                                               parameter_name="retaildemostore-amplitude-api-key",
+                                                               string_value=props['amplitude_api_key'],
+                                                               description="Retail Demo Store Amplitude API key")
 
         if props['optimizely_sdk_key'] == "":
             props['optimizely_sdk_key'] = "NONE"
-        ssm.StringParameter(self, "ParameterOptimizelySdkKey",
-                            parameter_name="retaildemostore-optimizely-sdk-key",
-                            string_value=props['optimizely_sdk_key'],
-                            description="Retail Demo Store Optimizely SDK key")
+        self.parameter_optimizely_sdk_key = ssm.StringParameter(self, "ParameterOptimizelySdkKey",
+                                                                parameter_name="retaildemostore-optimizely-sdk-key",
+                                                                string_value=props['optimizely_sdk_key'],
+                                                                description="Retail Demo Store Optimizely SDK key")
 
         self.parameter_ivs_video_channel_map = ssm.StringParameter(self, "ParameterIVSVideoChannelMap",
                                                                    parameter_name="retaildemostore-ivs-video-channel-map",
@@ -100,10 +100,10 @@ class SsmStack(Stack):
 
         if props['segment_write_key'] == "":
             props['segment_write_key'] = "NONE"
-        ssm.StringParameter(self, "ParameterSegmentWriteKey",
-                            parameter_name="retaildemostore-segment-write-key",
-                            string_value=props['segment_write_key'],
-                            description="Retail Demo Store Segment source write key")
+        self.parameter_segment_write_key = ssm.StringParameter(self, "ParameterSegmentWriteKey",
+                                                               parameter_name="retaildemostore-segment-write-key",
+                                                               string_value=props['segment_write_key'],
+                                                               description="Retail Demo Store Segment source write key")
 
         if props['mparticle_org_id'] == "":
             props['mparticle_org_id'] = "NONE"
@@ -149,7 +149,7 @@ class SsmStack(Stack):
 
         if props['google_analytics_measurement_id'] == "":
             props['google_analytics_measurement_id'] = "NONE"
-        ssm.StringParameter(self, "ParameterGoogleAnalyticsMeasurementId",
-                            parameter_name="retaildemostore-google-analytics-measurement-id",
-                            string_value=props['google_analytics_measurement_id'],
-                            description="Retail Demo Store Google Analytics Measurement Id")
+        self.parameter_google_analytics_measurement_id = ssm.StringParameter(self, "ParameterGoogleAnalyticsMeasurementId",
+                                                                             parameter_name="retaildemostore-google-analytics-measurement-id",
+                                                                             string_value=props['google_analytics_measurement_id'],
+                                                                             description="Retail Demo Store Google Analytics Measurement Id")

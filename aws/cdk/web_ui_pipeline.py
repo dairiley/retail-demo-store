@@ -201,10 +201,12 @@ class WebUIPipelineStack(Stack):
                                                           value=props['parameter_personalize_event_tracker_id']
                                                       ),
                                                       "AMPLITUDE_API_KEY": codebuild.BuildEnvironmentVariable(
-                                                          value=props['parameter_amplitude_api_key']
+                                                          value=props['parameter_amplitude_api_key'].parameter_name,
+                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE
                                                       ),
                                                       "OPTIMIZELY_SDK_KEY": codebuild.BuildEnvironmentVariable(
-                                                          value=props['parameter_optimizely_sdk_key']
+                                                          value=props['parameter_optimizely_sdk_key'].parameter_name,
+                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE
                                                       ),
                                                       "WEB_ROOT_URL": codebuild.BuildEnvironmentVariable(
                                                           value=props['web_root_url']
@@ -243,10 +245,12 @@ class WebUIPipelineStack(Stack):
                                                           value=props['location_notification_endpoint']
                                                       ),
                                                       "SEGMENT_WRITE_KEY": codebuild.BuildEnvironmentVariable(
-                                                          value=props['parameter_segment_write_key']
+                                                          value=props['parameter_segment_write_key'].parameter_name,
+                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE
                                                       ),
                                                       "GOOGLE_ANALYTICS_ID": codebuild.BuildEnvironmentVariable(
-                                                          value=props['google_analytics_measurement_id']
+                                                          value=props['google_analytics_measurement_id'].parameter_name,
+                                                          type=codebuild.BuildEnvironmentVariableType.PARAMETER_STORE
                                                       ),
                                                       "FENIX_ZIP_DETECT_URL": codebuild.BuildEnvironmentVariable(
                                                           value=props['fenix_zip_detect_url']
