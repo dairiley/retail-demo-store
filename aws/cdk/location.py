@@ -272,6 +272,30 @@ class LocationStack(Stack):
         location_geofence_websocket_disconnect_lambda.add_permission("ConnectionLambdaInvokePermission",
                                                                      principal=iam.ServicePrincipal("apigateway.amazonaws.com"))
 
+        lambda_authorizer_role = iam.Role(self, "LambdaAuthorizerRole",
+                                          assumed_by=iam.ServicePrincipal("lambda.amazonaws.com"),
+                                          managed_policies=[iam.ManagedPolicy.from_managed_policy_arn(self, "LambdaAuthorizerRoleBasicExecutionRole",
+                                                                                                      managed_policy_arn="arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole")])
+
+        lambda_authorizer_function = lambda_.Function(self, "LambdaAuthorizerFunction",
+                                                      runtime=lambda_.Runtime.NODEJS_18_X,
+                                                      handler="index.handler",
+                                                      code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "LambdaAuthorizerFunctionBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/apigw-ws-authorizer.zip"),
+                                                      timeout=Duration.seconds(60),
+                                                      role=lambda_authorizer_role,
+                                                      memory_size=512,
+                                                      environment={"ALLOWED_ORIGIN": props['web_url']})
+
+        lambda_authorizer = apigatewayv2.CfnAuthorizer(self, "LambdaAuthorizer",
+                                                       name="LambdaAuthorizer",
+                                                       api_id=location_geofence_browser_notification_api.attr_api_id,
+                                                       authorizer_type="REQUEST",
+                                                       authorizer_uri=f"arn:aws:apigateway:{Aws.REGION}:lambda:path/2015-03-31/functions/{lambda_authorizer_function.function_arn}/invocations")
+
+        lambda_authorizer_function.add_permission("LambdaAuthorizerFunctionPermission",
+                                                  principal=iam.ServicePrincipal("apigateway.amazonaws.com"),
+                                                  source_arn=f"arn:aws:execute-api:{Aws.REGION}:{Aws.ACCOUNT_ID}:{location_geofence_browser_notification_api.attr_api_id}/authorizers/{lambda_authorizer.attr_authorizer_id}")
+
         location_geofence_websocket_connection_integration = apigatewayv2.CfnIntegration(self, "LocationGeofenceWebsocketConnectionIntegration",
                                                                                          api_id=location_geofence_browser_notification_api.attr_api_id,
                                                                                          integration_type="AWS_PROXY",
@@ -279,7 +303,8 @@ class LocationStack(Stack):
         location_geofence_browser_notification_api_connect_route = apigatewayv2.CfnRoute(self, "LocationGeofenceBrowserNotificationApiConnectRoute",
                                                                                          api_id=location_geofence_browser_notification_api.attr_api_id,
                                                                                          route_key="$connect",
-                                                                                         authorization_type="NONE",
+                                                                                         authorization_type="CUSTOM",
+                                                                                         authorizer_id=lambda_authorizer.attr_authorizer_id,
                                                                                          operation_name="ConnectRoute",
                                                                                          target=f"integrations/{location_geofence_websocket_connection_integration.ref}")
 
@@ -290,7 +315,6 @@ class LocationStack(Stack):
         location_geofence_browser_notification_api_disconnect_route = apigatewayv2.CfnRoute(self, "LocationGeofenceBrowserNotificationApiDisconnectRoute",
                                                                                          api_id=location_geofence_browser_notification_api.attr_api_id,
                                                                                          route_key="$disconnect",
-                                                                                         authorization_type="NONE",
                                                                                          operation_name="DisconnectRoute",
                                                                                          target=f"integrations/{location_geofence_websocket_disconnect_integration.ref}")
 
