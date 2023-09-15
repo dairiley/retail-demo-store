@@ -20,11 +20,11 @@ The Retail Demo Store provides several options for managing deployments.  Here a
 
 ### Option 3.1 Deploy via an S3 Staging Bucket
 
-If you want to modify deployment templates and manage the whole deployment process yourself, you will need to configure an S3 bucket for staging Retail Demo Store deployment templates and resources prior to deployment in your own AWS account.  This bucket must be in the region in which you plan to deploy.
+If you want to manage the whole deployment process yourself, you will need to configure an S3 bucket for staging Retail Demo Store resources prior to deployment in your own AWS account.  This bucket must be in the region in which you plan to deploy.
 
-***These instructions only apply if you wish to stage your own Retail Demo Store deployment resources. For example, if you want to test CloudFormation template changes or the deployment of Lambda code. These instructions are not necessary for the typical deployment scenarios described in the main [README](./README.md).***
+***These instructions only apply if you wish to stage your own Retail Demo Store deployment resources. These instructions are not necessary for the typical deployment scenarios described in the main [README](./README.md).***
 
-The launch options described in the main [README](./README.md) pull the CloudFormation templates from an S3 bucket designed to support deployments of what is in the upstream master branch. If you want to test changes to the templates or launch a custom variation of this project, you can do so by uploading your versions of the templates and other deployment resources to an S3 bucket in your account (i.e. staging bucket), launching your version of the [root template](aws/cloudformation-templates/template.yaml) (i.e. upload the root template or specify an S3 URL pointing to the root template in your bucket), and override the `ResourceBucket` and `ResourceBucketRelativePath` template parameters to refer to your bucket and path. These parameters are used to load the nested templates from your bucket rather than the default shared bucket.
+The launch options described in the main [README](./README.md) use AWS CDK to deploy the stack and is designed to support deployments of what is in the upstream master branch. If you want to test changes to the stack or launch a custom variation of this project, you can do so by forking the repository and editing the cdk files located in `./aws/cdk`, and overriding the `resource_bucket` and `resource_bucket_relative_path` parameters in `./aws/cdk/cdk.json` to refer to your bucket and path. These parameters are used to load the resources from your bucket rather than the default shared bucket.
 
 #### Bucket Region
 
@@ -72,30 +72,19 @@ Example on how to stage your project to a custom bucket and path (note the path 
 ./stage.sh MY_CUSTOM_BUCKET S3_PATH/
 ```
 
-The stage script will output a path to your master deployment CloudFormation template.  You can use this link to your S3 bucket to start a new deployment via the CloudFormation console in your AWS Console or use the command line below.  (replace REGION, MY_CUSTOM_BUCKET and S3_PATH value)
-
-```bash
-./scripts/deploy-cloudformation-stacks.sh DEPLOYMENT_S3_BUCKET REGION STACK_NAME
-```
-
 ### Option 3.2 Deploy Infrastructure from the Main Repo, Deploy Application and Services via GitHub
 
-If you only want to modify the web user interface, or the Retail Demo Store backend services, you can deploy Retail Demo Store using the options below, and issue commits in your own fork via GitHub to trigger a re-deploy.  This will allow you to push changes to the Retail Demo Store services and web user interface using a CodeDeploy pipeline.
+If you only want to modify the web user interface, or the Retail Demo Store backend services, you can deploy Retail Demo Store using the options below, and issue commits in your own fork via GitHub and trigger a re-deploy. This will allow you to push changes to the Retail Demo Store services and web user interface using a CodeDeploy pipeline.
 
-To do that, select one of the CloudFormation launch options below. The deployment approach will be set to "GitHub".
+To do that, configure your `cdk.json` to use `Github` as the deployment type. 
 
-**All GitHub related template parameters are required.** Enter your GitHub username and deployment key from Step 2 in the CloudFormation UI after clicking one of the Launch Stack buttons below, and follow the procedures to launch the template.
+**All GitHub related template parameters are required.** Set `github_repo`, `github_branch`, `github_user` and optionally `github_token` and execute the below command from the cdk directory ([./aws/cdk]()) to deploy.
+```bash
+cdk deploy --all
+```
+*For additional information on deploying with CDK, refer to **Step 3** in the [README](./README.md).*
 
-Region name | Region code | Launch
---- | --- | ---
-US East (N. Virginia) | us-east-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/retail-demo-store-us-east-1/cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=retail-demo-store-us-east-1&param_SourceDeploymentType=GitHub)
-US West (Oregon) | us-west-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://s3-us-west-2.amazonaws.com/retail-demo-store-us-west-2/cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=retail-demo-store-us-west-2&param_SourceDeploymentType=GitHub)
-Europe (Ireland) | eu-west-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://s3-eu-west-1.amazonaws.com/retail-demo-store-eu-west-1/cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=retail-demo-store-eu-west-1&param_SourceDeploymentType=GitHub)
-Asia Pacific (Tokyo) | ap-northeast-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/retail-demo-store-ap-northeast-1/cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=retail-demo-store-ap-northeast-1&param_SourceDeploymentType=GitHub)
-Asia Pacific (Sydney) | ap-southeast-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=ap-southeast-2#/stacks/create/review?templateURL=https://s3.amazonaws.com/retail-demo-store-ap-southeast-2/cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=retail-demo-store-ap-southeast-2&param_SourceDeploymentType=GitHub)
-
-The CloudFormation deployment will take 20-30 minutes to complete. If you chose to have the Amazon Personalize campaigns automatically built post-deployment, this process will take an additional 2-2.5 hours. This process happens in the background so you don't have to wait for it to complete before exploring the Retail Demo Store application and architecture. Once the Personalize campaigns are created, they will be automatically activated in the [Web UI](src/web-ui) and [Recommendations](src/recommendations) service. You can monitor the progress in CloudWatch under the `/aws/lambda/RetailDemoStorePersonalizePreCreateCampaigns` log group.
-
+The CloudFormation deployment will take around 40 minutes to complete. If you chose to have the Amazon Personalize campaigns automatically built post-deployment, this process will take an additional 2-2.5 hours. This process happens in the background so you don't have to wait for it to complete before exploring the Retail Demo Store application and architecture. Once the Personalize campaigns are created, they will be automatically activated in the Web UI and Recommendations service. You can monitor the progress in CloudWatch under the `/aws/lambda/RetailDemoStorePersonalizePreCreateCampaigns` log group.
 ### Developing Services Locally
 
 The Retail Demo Store also supports running the web user interface and backend services in a local container on your machine.  This may be a handy option while testing a fix or enhancement.

@@ -1,1 +1,1 @@
-aws-cdk-lib
+aws-cdk-lib==2.89.0

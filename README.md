@@ -69,19 +69,57 @@ Note: If you are logged in as an IAM user, ensure your account has permissions t
 
 ## Step 3 - Deploy to your AWS Account
 
-The following CloudFormation launch options will set the deployment approach to "CodeCommit". You can ignore the GitHub related template parameters. After clicking one of the Launch Stack buttons below, follow the procedures to launch the template. **Be sure to enter a CloudFront stack name in lowercase letters (numbers and hyphens are okay too).**
+The CloudFormation stack is deployed with [AWS CDK](https://aws.amazon.com/cdk/).
 
-With this deployment option, the CloudFormation template will import the Retail Demo Store source code into a CodeCommit repository in your account and setup CodePipeline to build and deploy into ECS from that respository.
+To deploy to your own account you will need the following prerequisites:
+- Node.js 14.15.0 or later
+- Python 3.7 or later
+- 
+It is recommended to run CDK from a Python virtual environment to ensure dependencies are managed correctly. You can configure and enter a virtual environment with the below commands:
+```bash
+python3 -m venv .venv
+```
+```bash
+source .venv/bin/activate
+```
 
-Region name | Region code | Launch
---- | --- | ---
-US East (N. Virginia) | us-east-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/retail-demo-store-us-east-1/cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=retail-demo-store-us-east-1&param_SourceDeploymentType=CodeCommit)
-US West (Oregon) | us-west-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=us-west-2#/stacks/create/review?templateURL=https://s3-us-west-2.amazonaws.com/retail-demo-store-us-west-2/cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=retail-demo-store-us-west-2&param_SourceDeploymentType=CodeCommit)
-Europe (Ireland) | eu-west-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=eu-west-1#/stacks/create/review?templateURL=https://s3-eu-west-1.amazonaws.com/retail-demo-store-eu-west-1/cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=retail-demo-store-eu-west-1&param_SourceDeploymentType=CodeCommit)
-Asia Pacific (Tokyo) | ap-northeast-1 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=ap-northeast-1#/stacks/create/review?templateURL=https://s3.amazonaws.com/retail-demo-store-ap-northeast-1/cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=retail-demo-store-ap-northeast-1&param_SourceDeploymentType=CodeCommit)
-Asia Pacific (Sydney) | ap-southeast-2 | [![Launch Stack](https://cdn.rawgit.com/buildkite/cloudformation-launch-stack-button-svg/master/launch-stack.svg)](https://console.aws.amazon.com/cloudformation/home?region=ap-southeast-2#/stacks/create/review?templateURL=https://s3.amazonaws.com/retail-demo-store-ap-southeast-2/cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=retail-demo-store-ap-southeast-2&param_SourceDeploymentType=CodeCommit)
+Run `deactivate` to exit a virtual environment.
+
+### Configure the Stack
+You can customize your deployment by altering the `cdk.json` file in `/aws/cdk`. If you want to use one of the pre-configured templates for a workshop, rename the appropriate `cdk.json` alternative prior to deployment.
+
+With the default deployment option, the CloudFormation template will import the Retail Demo Store source code into a CodeCommit repository in your account and setup CodePipeline to build and deploy into ECS from that respository.
+### Deploy the Stack
+
+**All cdk commands need to be run from  the cdk directory ([./aws/cdk]())**
+
+Deployment is supported in the following regions:
+- us-east-1
+- us-west-2
+- eu-west-1
+- ap-northeast-1
+- ap-southeast-2
+
+If you have not already done so for your account, you will need to bootstrap the cdk environment.
+
+```bash
+cdk bootstrap
+```
+
+To deploy the entire application:
+
+```bash
+cdk deploy --all
+```
+
+Add flag `--require-approval never` to skip IAM permission confirmations.
 
 The CloudFormation deployment will take approximately 40 minutes to complete.
+
+### Destroy the Stack
+```bash
+cdk destroy --all
+```
 
 ### Notes:
 
@@ -90,7 +128,7 @@ The CloudFormation deployment will take approximately 40 minutes to complete.
 If you chose to have the Amazon Personalize campaigns automatically built post-deployment, this process will take an additional 2-2.5 hours. This process happens in the background so you don't have to wait for it to complete before exploring the Retail Demo Store application and architecture. Once the Personalize campaigns are created, they will be automatically activated in the [Web UI](src/web-ui) and [Recommendations](src/recommendations) service. You can monitor the progress in CloudWatch under the `/aws/lambda/RetailDemoStorePersonalizePreCreateCampaigns` log group.
 
 #### Amazon Pinpoint Campaigns
-If you chose to have the Amazon Pinpoint campaigns automatically built (‘Auto-Configure Pinpoint’ is set to ‘Yes’ in the CloudFormation template), this process will take an additional 20-30 minutes.
+If you chose to have the Amazon Pinpoint campaigns automatically built (`pre_create_pinpoint_workshop` is set to `true` in `cdk.json`), this process will take an additional 20-30 minutes.
 Once the Pinpoint campaigns are created, they will be automatically visbile in the [Web UI](src/web-ui). However, there are some manual steps described below that are required for enabling the Pinpoint channels.
 
 ##### Pinpoint Emails:
