@@ -6,15 +6,14 @@
 # products and categories into DDB and CSVs for training Personalize models.
 #
 # Exammple usage:
-# ./stage.sh S3_BUCKET [OPTIONAL_S3_PATH/] [--private-s3] [--only-cfn-template] [--skip-generators]
+# ./stage.sh S3_BUCKET [OPTIONAL_S3_PATH/] [--private-s3] [--skip-generators]
 #
 # The S3_BUCKET/OPTIONAL_S3_PATH is where all resources and templates will be uploaded.
 # If you don't specify the OPTIONAL_S3_PATH, it will be uploaded to the root of the bucket.
 #
 # The optional flags are:
 # 1. "--private-s3" to upload files without setting the object ACL to public
-# 2. "--only-cfn-template" to upload only CloudFormation templates (to speed up development time if you aren't changing any code)
-# 3. "--skip-generators" to skip data generator steps
+# 2. "--skip-generators" to skip data generator steps
 
 set -e
 
@@ -24,13 +23,11 @@ set -e
 # The script parses the command line argument and extract these variables:
 # 1. "args" contains an array of arguments (e.g. args[0], args[1], etc.) In this case, we take 2 arguments for BUCKET and S3PATH
 # 2. "private-s3" contains a boolean value whether "--private-s3" is presented (e.g. "./stage.sh --private-s3" will set this to true.
-# 3. "only-cfn-template" contains a boolean value whether only CloudFormation templates should be copied to staging bucket (default = false).
-# 4. "skip-generators" contains a boolean value whether the dataset generators should be skipped or not (default = false).
-# 5. "skip-virtualenv" contains a boolean value to be used if stage.sh is called from inside a virtualenv 
+# 3. "skip-generators" contains a boolean value whether the dataset generators should be skipped or not (default = false).
+# 4. "skip-virtualenv" contains a boolean value to be used if stage.sh is called from inside a virtualenv
 ########################################################################################################################################
 args=()
 private_s3=false
-only_cfn_template=false
 skip_generators=false
 
 while [ "$1" ];
@@ -47,10 +44,6 @@ do
         then
             private_s3=true
             echo Received a \"--private-s3\" flag. Will upload object without public access.
-        elif [ "$bool" == "only-cfn-template" ]
-        then
-            only_cfn_template=true
-            echo Received a \"--only-cfn-template\" flag. Will only upload CloudFormation templates.
         elif [ "$bool" == "skip-generators" ]
         then
             skip_generators=true
@@ -86,7 +79,6 @@ echo "=============================================="
 echo "BUCKET = ${BUCKET}"
 echo "S3PATH = ${S3PATH}"
 echo "private-s3 = ${private_s3}"
-echo "only-cfn-template = ${only_cfn_template}"
 echo "skip-generators = ${skip_generators}"
 echo "skip-virtualenv = ${skip_virtualenv}"
 echo "=============================================="
@@ -121,70 +113,62 @@ find . -name '.DS_Store' -type f -delete
 
 echo " + Staging to $BUCKET in $S3PATH"
 
-echo " + Uploading CloudFormation Templates"
-aws s3 cp aws/cdk/cdk.out s3://${BUCKET}/${S3PATH}cloudformation-templates --recursive $S3PUBLIC
-echo " For CloudFormation : https://${BUCKET_DOMAIN}/${BUCKET}/${S3PATH}cloudformation-templates/retail-demo-store.template.json"
+echo " + Packaging Source"
+[ -e "retaildemostore-source.zip" ] && rm retaildemostore-source.zip
+zip -qr retaildemostore-source.zip ./src/ -x "*.DS_Store" "*__pycache__*" "*/aws-lambda/*" "*/node_modules/*" "*.zip" "*/venv*" "*/.venv*" "*/dist/*" "*/dist-layer0/*"
 
-if [ "$only_cfn_template" = false ]; then
-    echo " + Packaging Source"
-    [ -e "retaildemostore-source.zip" ] && rm retaildemostore-source.zip
-    zip -qr retaildemostore-source.zip ./src/ -x "*.DS_Store" "*__pycache__*" "*/aws-lambda/*" "*/node_modules/*" "*.zip" "*/venv*" "*/.venv*" "*/dist/*" "*/dist-layer0/*"
+echo " + Uploading Source"
+aws s3 cp retaildemostore-source.zip s3://${BUCKET}/${S3PATH}source/retaildemostore-source.zip $S3PUBLIC
 
-    echo " + Uploading Source"
-    aws s3 cp retaildemostore-source.zip s3://${BUCKET}/${S3PATH}source/retaildemostore-source.zip $S3PUBLIC
+echo " + Upload seed data"
+aws s3 cp src/products/src/products-service/data/ s3://${BUCKET}/${S3PATH}data --recursive  $S3PUBLIC
+aws s3 cp src/users/src/users-service/data/ s3://${BUCKET}/${S3PATH}data --recursive $S3PUBLIC
 
-    echo " + Upload seed data"
-    aws s3 cp src/products/src/products-service/data/ s3://${BUCKET}/${S3PATH}data --recursive  $S3PUBLIC
-    aws s3 cp src/users/src/users-service/data/ s3://${BUCKET}/${S3PATH}data --recursive $S3PUBLIC
+echo " + Upload IVS videos"
+aws s3 cp videos/ s3://${BUCKET}/${S3PATH}videos --recursive $S3PUBLIC
 
-    echo " + Upload IVS videos"
-    aws s3 cp videos/ s3://${BUCKET}/${S3PATH}videos --recursive $S3PUBLIC
-
-    if [ "$skip_generators" = false ]; then
-        echo " + Generating CSVs for Personalize model pre-create training"
-        if [ "$skip_virtualenv" = false ]; then
-            python3 -m venv .venv
-            . .venv/bin/activate
-        fi
-        pip install -r generators/requirements.txt
-        PYTHONPATH=. python3 generators/generate_interactions_personalize.py
-        PYTHONPATH=. python3 generators/generate_interactions_personalize_offers.py
-    else
-        echo " + Generators skipped!"
+if [ "$skip_generators" = false ]; then
+    echo " + Generating CSVs for Personalize model pre-create training"
+    if [ "$skip_virtualenv" = false ]; then
+        python3 -m venv .venv
+        . .venv/bin/activate
     fi
-
-    # Sync product images
-    echo " + Copying product images"
-    aws s3 sync s3://retail-demo-store-code/datasets/1.3/images/ s3://${BUCKET}/${S3PATH}images/ $S3PUBLIC || echo "Skipping load of remote image dataset 1.3"
-    aws s3 sync s3://retail-demo-store-code/datasets/1.4/images/ s3://${BUCKET}/${S3PATH}images/ $S3PUBLIC || echo "Skipping load of remote image dataset 1.4"
-    aws s3 sync datasets/1.4/images/ s3://${BUCKET}/${S3PATH}images/ $S3PUBLIC || echo "Skipping load of local image dataset 1.4"
-
-    aws s3 sync ./src/videos/src/videos-service/static s3://${BUCKET}/${S3PATH}images/videos/ $S3PUBLIC || echo "Skipping load of local video thumbnails"
-
-    # Sync location data files
-    echo " + Copying location location data"
-    aws s3 sync ./location_services s3://${BUCKET}/${S3PATH}location_services --only-show-errors $S3PUBLIC
-
-    # Sync CSVs used for Personalize pre-create resources Lambda function
-    echo " + Copying CSVs for Personalize model pre-create resources"
-    aws s3 sync src/aws-lambda/personalize-pre-create-resources/data/ s3://${BUCKET}/${S3PATH}csvs/ $S3PUBLIC
-
-    # Stage AWS Lambda functions
-    echo " + Staging AWS Lambda functions"
-
-    for function in ./src/aws-lambda/*/
-    do
-        if [ -f ./${function}/stage.sh ]; then
-            echo "  + Staging $function"
-            cd $function
-            chmod +x ./stage.sh
-            ./stage.sh ${BUCKET} ${S3PATH} > ../../../local/stage.log
-            cd -
-        fi
-    done
+    pip install -r generators/requirements.txt
+    PYTHONPATH=. python3 generators/generate_interactions_personalize.py
+    PYTHONPATH=. python3 generators/generate_interactions_personalize_offers.py
+else
+    echo " + Generators skipped!"
 fi
-echo " + Done s3://${BUCKET}/${S3PATH} "
-echo " Launch CloudFormation stack: https://console.aws.amazon.com/cloudformation/home?region=${BUCKET_LOCATION}#/stacks/create/review?templateURL=https://${BUCKET_DOMAIN}/${BUCKET}/${S3PATH}cloudformation-templates/template.yaml&stackName=retaildemostore&param_ResourceBucket=${BUCKET}"
-echo " For CloudFormation : https://${BUCKET_DOMAIN}/${BUCKET}/${S3PATH}cloudformation-templates/retail-demo-store.template.json"
 
+# Sync product images
+echo " + Copying product images"
+aws s3 sync s3://retail-demo-store-code/datasets/1.3/images/ s3://${BUCKET}/${S3PATH}images/ $S3PUBLIC || echo "Skipping load of remote image dataset 1.3"
+aws s3 sync s3://retail-demo-store-code/datasets/1.4/images/ s3://${BUCKET}/${S3PATH}images/ $S3PUBLIC || echo "Skipping load of remote image dataset 1.4"
+aws s3 sync datasets/1.4/images/ s3://${BUCKET}/${S3PATH}images/ $S3PUBLIC || echo "Skipping load of local image dataset 1.4"
+
+aws s3 sync ./src/videos/src/videos-service/static s3://${BUCKET}/${S3PATH}images/videos/ $S3PUBLIC || echo "Skipping load of local video thumbnails"
+
+# Sync location data files
+echo " + Copying location location data"
+aws s3 sync ./location_services s3://${BUCKET}/${S3PATH}location_services --only-show-errors $S3PUBLIC
+
+# Sync CSVs used for Personalize pre-create resources Lambda function
+echo " + Copying CSVs for Personalize model pre-create resources"
+aws s3 sync src/aws-lambda/personalize-pre-create-resources/data/ s3://${BUCKET}/${S3PATH}csvs/ $S3PUBLIC
+
+# Stage AWS Lambda functions
+echo " + Staging AWS Lambda functions"
+
+for function in ./src/aws-lambda/*/
+do
+    if [ -f ./${function}/stage.sh ]; then
+        echo "  + Staging $function"
+        cd $function
+        chmod +x ./stage.sh
+        ./stage.sh ${BUCKET} ${S3PATH} > ../../../local/stage.log
+        cd -
+    fi
+done
+
+echo " + Done s3://${BUCKET}/${S3PATH} "
 
