@@ -47,7 +47,7 @@ class PipelineStack(Stack):
         CustomResource(self, "EmptyArtifactBucket",
                        resource_type="Custom::EmptyArtifactBucket",
                        service_token=props['cleanup_bucket_lambda_arn'],
-                       properties = {"BucketName": artifact_bucket.bucket_name})
+                       properties={"BucketName": artifact_bucket.bucket_name})
 
         codebuild_service_role = iam.Role(self, "CodeBuildServiceRole",
                             assumed_by=iam.ServicePrincipal("codebuild.amazonaws.com"),
@@ -102,7 +102,10 @@ class PipelineStack(Stack):
                                                 "s3:GetObjectVersion",
                                                 "s3:GetBucketVersioning"
                                             ],
-                                            resources=[artifact_bucket.bucket_arn]
+                                            resources=[
+                                                artifact_bucket.bucket_arn,
+                                                f"{artifact_bucket.bucket_arn}/*"
+                                            ]
                                         ),
                                         iam.PolicyStatement(
                                             actions=[

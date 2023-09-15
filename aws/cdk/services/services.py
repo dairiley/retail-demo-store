@@ -74,6 +74,7 @@ class ServicesStack(Stack):
             "service_discovery_namespace": props['service_discovery_namespace'],
             "products_table": props['products_table'],
             "categories_table": props['categories_table'],
+            "carts_table": props['carts_table'],
             "experiment_strategy_table": props['experiment_strategy_table'],
             "parameter_personalize_event_tracker_id": props['parameter_personalize_event_tracker_id'],
             "parameter_amplitude_api_key": props['parameter_amplitude_api_key'],

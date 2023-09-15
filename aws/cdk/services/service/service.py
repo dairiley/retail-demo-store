@@ -40,6 +40,11 @@ class ServiceStack(Stack):
                                                   props['products_table'].attr_arn,
                                                   props['categories_table'].attr_arn,
                                                   props['experiment_strategy_table'].attr_arn,
+                                                  props['carts_table'].attr_arn,
+                                                  f"{props['products_table'].attr_arn}/index*",
+                                                  f"{props['categories_table'].attr_arn}/index*",
+                                                  f"{props['experiment_strategy_table'].attr_arn}/index*",
+                                                  f"{props['carts_table'].attr_arn}/index*"
                                               ]
                                           )]
                                       ),
@@ -114,7 +119,10 @@ class ServiceStack(Stack):
                                               ),
                                               iam.PolicyStatement(
                                                   actions=["s3:GetObject"],
-                                                  resources=[f"arn:aws:s3:::{props['resource_bucket']}"]
+                                                  resources=[
+                                                      f"arn:aws:s3:::{props['resource_bucket']}",
+                                                      f"arn:aws:s3:::{props['resource_bucket']}/*"
+                                                  ]
                                               ),
                                               iam.PolicyStatement(
                                                   actions=["ivs:ListStreamKeys"],
@@ -273,6 +281,10 @@ class ServiceStack(Stack):
                                                                 value=props['categories_table'].ref
                                                             ),
                                                             ecs.CfnTaskDefinition.KeyValuePairProperty(
+                                                                name="DDB_TABLE_CARTS",
+                                                                value=props['carts_table'].ref
+                                                            ),
+                                                            ecs.CfnTaskDefinition.KeyValuePairProperty(
                                                                 name="WEB_ROOT_URL",
                                                                 value=props['web_root_url']
                                                             ),
@@ -291,6 +303,10 @@ class ServiceStack(Stack):
                                                             ecs.CfnTaskDefinition.KeyValuePairProperty(
                                                                 name="EVIDENTLY_PROJECT_NAME",
                                                                 value=props['evidently_project_name']
+                                                            ),
+                                                            ecs.CfnTaskDefinition.KeyValuePairProperty(
+                                                                name="AWS_DEFAULT_REGION",
+                                                                value=Aws.REGION
                                                             ),
                                                         ],
                                                     ),

@@ -31,7 +31,10 @@ class ProductsCustomStack(Stack):
                                              "S3": iam.PolicyDocument(statements=[
                                                  iam.PolicyStatement(
                                                      actions=["s3:GetObject"],
-                                                     resources=[f"arn:aws:s3:::{props['resource_bucket']}"]
+                                                     resources=[
+                                                         f"arn:aws:s3:::{props['resource_bucket']}",
+                                                         f"arn:aws:s3:::{props['resource_bucket']}/*"
+                                                     ]
                                                  )
                                              ]),
                                              "CloudWatch": iam.PolicyDocument(statements=[

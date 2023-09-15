@@ -85,6 +85,40 @@ class TablesStack(Stack):
         self.categories_table.add_dependency(self.products_table)
 
         """
+        Carts table
+        """
+        self.carts_table = dynamodb.CfnTable(self, "CartsTable",
+                                                  key_schema=[dynamodb.CfnTable.KeySchemaProperty(
+                                                     attribute_name="id",
+                                                     key_type="HASH"
+                                                  )],
+                                                  attribute_definitions=[
+                                                      dynamodb.CfnTable.AttributeDefinitionProperty(
+                                                          attribute_name="id",
+                                                          attribute_type="S"
+                                                      ),
+                                                      dynamodb.CfnTable.AttributeDefinitionProperty(
+                                                          attribute_name="username",
+                                                          attribute_type="S"
+                                                      )
+                                                  ],
+                                                  billing_mode="PAY_PER_REQUEST",
+                                                  global_secondary_indexes=[dynamodb.CfnTable.GlobalSecondaryIndexProperty(
+                                                      index_name="username-index",
+                                                      key_schema=[dynamodb.CfnTable.KeySchemaProperty(
+                                                          attribute_name="username",
+                                                          key_type="HASH"
+                                                      )],
+                                                      projection=dynamodb.CfnTable.ProjectionProperty(
+                                                          projection_type="ALL"
+                                                      ))
+                                                  ],
+                                                  time_to_live_specification=dynamodb.CfnTable.TimeToLiveSpecificationProperty(
+                                                      enabled=True,
+                                                      attribute_name="ttl"
+                                                  ))
+
+        """
         Experiment strategy table
         """
         self.experiment_strategy_table = dynamodb.CfnTable(self, "ExperimentStrategyTable",
