@@ -41,10 +41,12 @@ class ServiceStack(Stack):
                                                   props['categories_table'].attr_arn,
                                                   props['experiment_strategy_table'].attr_arn,
                                                   props['carts_table'].attr_arn,
+                                                  props['orders_table'].attr_arn,
                                                   f"{props['products_table'].attr_arn}/index*",
                                                   f"{props['categories_table'].attr_arn}/index*",
                                                   f"{props['experiment_strategy_table'].attr_arn}/index*",
-                                                  f"{props['carts_table'].attr_arn}/index*"
+                                                  f"{props['carts_table'].attr_arn}/index*",
+                                                  f"{props['orders_table'].attr_arn}/index*"
                                               ]
                                           )]
                                       ),
@@ -283,6 +285,10 @@ class ServiceStack(Stack):
                                                             ecs.CfnTaskDefinition.KeyValuePairProperty(
                                                                 name="DDB_TABLE_CARTS",
                                                                 value=props['carts_table'].ref
+                                                            ),
+                                                            ecs.CfnTaskDefinition.KeyValuePairProperty(
+                                                                name="DDB_TABLE_ORDERS",
+                                                                value=props['orders_table'].ref
                                                             ),
                                                             ecs.CfnTaskDefinition.KeyValuePairProperty(
                                                                 name="WEB_ROOT_URL",

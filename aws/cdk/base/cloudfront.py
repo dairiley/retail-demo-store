@@ -32,8 +32,8 @@ class CloudFrontStack(Stack):
                            "BucketName": self.webui_bucket.bucket_name
                        })
 
-        webui_origin_access_identity = cloudfront.OriginAccessIdentity(self, "WebUIBucketOriginAccessIdentity",
-                                                                       comment=f"fOriginAccessIdentity for {self.webui_bucket.bucket_name}")
+        cloudfront.OriginAccessIdentity(self, "WebUIBucketOriginAccessIdentity",
+                                        comment=f"fOriginAccessIdentity for {self.webui_bucket.bucket_name}")
 
         origin_access_control = cloudfront.CfnOriginAccessControl(self, "UIOriginAccessControl",
                                                                   origin_access_control_config=cloudfront.CfnOriginAccessControl.OriginAccessControlConfigProperty(

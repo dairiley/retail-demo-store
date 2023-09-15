@@ -24,6 +24,7 @@ class ServiceAppStack(Stack):
             "products_table": props['products_table'],
             "categories_table": props['categories_table'],
             "carts_table": props['carts_table'],
+            "orders_table": props['orders_table'],
             "experiment_strategy_table": props['experiment_strategy_table'],
             "resource_bucket": props['resource_bucket'],
             "amazon_pay_signing_lambda": props['amazon_pay_signing_lambda'],

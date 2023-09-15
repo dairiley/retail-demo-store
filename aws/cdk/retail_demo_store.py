@@ -158,6 +158,7 @@ class RetailDemoStoreStack(Stack):
             "products_table": base.tables.products_table,
             "categories_table": base.tables.categories_table,
             "carts_table": base.tables.carts_table,
+            "orders_table": base.tables.orders_table,
             "experiment_strategy_table": base.tables.experiment_strategy_table,
             "pinpoint_app_id": base.pinpoint.pinpoint.ref,
             "parameter_personalize_event_tracker_id": base.ssm.parameter_personalize_event_tracker_id.string_value,
