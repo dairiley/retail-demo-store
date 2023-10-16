@@ -162,12 +162,12 @@ class EvidentlyStack(Stack):
                                                     })
 
         lambda_.Function(self, "EvidentlyCleanupLambdaFunction",
-                         runtime=lambda_.Runtime.PYTHON_3_9 ,
+                         runtime=lambda_.Runtime.PYTHON_3_10 ,
                          description="Retail Demo Store deployment utility function that cancels and deletes experiments to allow project to be fully deleted",
                          handler="index.handler",
                          code=lambda_.Code.from_asset("base/lambda/evidently_cleanup",
                                                       bundling=BundlingOptions(
-                                                          image=lambda_.Runtime.PYTHON_3_9.bundling_image,
+                                                          image=lambda_.Runtime.PYTHON_3_10.bundling_image,
                                                           command=[
                                                               "bash", "-c",
                                                               "pip install --no-cache -r requirements.txt -t /asset-output && cp -au . /asset-output"

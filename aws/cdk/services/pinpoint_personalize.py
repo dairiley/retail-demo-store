@@ -60,7 +60,7 @@ class PinpointPersonalizeStack(Stack):
                                                          })
 
         self.customize_recommendations_function = lambda_.Function(self, "CustomizeRecommendationsFunction",
-                                                                   runtime=lambda_.Runtime.PYTHON_3_8,
+                                                                   runtime=lambda_.Runtime.PYTHON_3_10,
                                                                    description="Retail Demo Store function called by Pinpoint to enrich messages with product information based on recommendations from Amazon Personalize",
                                                                    function_name="RetailDemoStorePinpointRecommender",
                                                                    handler="pinpoint-recommender.lambda_handler",
@@ -75,7 +75,7 @@ class PinpointPersonalizeStack(Stack):
                                                            source_arn=f"arn:aws:mobiletargeting:{Aws.REGION}:{Aws.ACCOUNT_ID}:*")
 
         self.customize_offers_recommendations_function = lambda_.Function(self, "CustomizeOffersRecommendationsFunction",
-                                                                          runtime=lambda_.Runtime.PYTHON_3_8,
+                                                                          runtime=lambda_.Runtime.PYTHON_3_10,
                                                                           description="Retail Demo Store function called by Pinpoint to enrich messages with product/offer information based on recommendations from Amazon Personalize",
                                                                           function_name="RetailDemoStorePinpointOffersRecommender",
                                                                           handler="pinpoint-offers-recommender.lambda_handler",
@@ -118,7 +118,7 @@ class PinpointPersonalizeStack(Stack):
                                                          })
 
         pinpoint_sms_alerts_lambda_function = lambda_.Function(self, "PinpointSMSAlertsLambda",
-                                                               runtime=lambda_.Runtime.PYTHON_3_8,
+                                                               runtime=lambda_.Runtime.PYTHON_3_10,
                                                                description="Retail Demo Store function that opts in customers to receive sms alerts from Amazon Pinpoint",
                                                                function_name="RetailDemoStorePinpointSMSAlerts",
                                                                handler="ppinpoint-sms-alerts.lambda_handler",

@@ -32,12 +32,12 @@ class ServicesStack(Stack):
                                                  })
 
         delete_repository_lambda = lambda_.Function(self, "DeleteRepositoryLambdaFunction",
-                                                    runtime=lambda_.Runtime.PYTHON_3_7,
+                                                    runtime=lambda_.Runtime.PYTHON_3_10,
                                                     description="Retail Demo Store deployment utility function that deletes an Amazon ECR repository when the CloudFormation stack is deleted",
                                                     handler="index.handler",
                                                     code=lambda_.Code.from_asset("services/lambda/delete_repository",
                                                                                  bundling=BundlingOptions(
-                                                                                     image=lambda_.Runtime.PYTHON_3_7.bundling_image,
+                                                                                     image=lambda_.Runtime.PYTHON_3_10.bundling_image,
                                                                                      command=[
                                                                                          "bash", "-c",
                                                                                          "pip install --no-cache -r requirements.txt -t /asset-output && cp -au . /asset-output"

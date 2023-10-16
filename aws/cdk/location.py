@@ -74,7 +74,7 @@ class LocationStack(Stack):
                                                        })
 
         location_resource_stack_function = lambda_.Function(self, "LocationResourceStackLambdaFunction",
-                                                            runtime=lambda_.Runtime.PYTHON_3_8,
+                                                            runtime=lambda_.Runtime.PYTHON_3_10,
                                                             description="Function which manages the lifecycle (creation, update & deletion) of the Amazon Location resources used in the Location Service Demo",
                                                             function_name="LocationNrfDemoLocationResourceStack",
                                                             handler="location-resource-stack.lambda_handler",
@@ -177,7 +177,7 @@ class LocationStack(Stack):
                                                         })
 
         location_geofence_event_handler_function = lambda_.Function(self, "LocationGeofenceEventHandler",
-                                                                    runtime=lambda_.Runtime.PYTHON_3_8,
+                                                                    runtime=lambda_.Runtime.PYTHON_3_10,
                                                                     description="Handles Amazon Location geofence entry/exit events in Location Service demo",
                                                                     function_name="LocationNrfDemoGeofenceEventHandler",
                                                                     handler="location-resource-stack.lambda_handler",
@@ -246,7 +246,7 @@ class LocationStack(Stack):
                                                            })
 
         location_geofence_websocket_connect_lambda = lambda_.Function(self, "LocationGeofenceWebsocketConnectLambda",
-                                                                      runtime=lambda_.Runtime.PYTHON_3_8,
+                                                                      runtime=lambda_.Runtime.PYTHON_3_10,
                                                                       description="Handles connections to the WebSocket API processing Location Geofence notifications",
                                                                       function_name="LocationNrfDemoNotificationApiConnect",
                                                                       handler="websocket-connect.lambda_handler",
@@ -261,7 +261,7 @@ class LocationStack(Stack):
                                                                       "apigateway.amazonaws.com"))
 
         location_geofence_websocket_disconnect_lambda = lambda_.Function(self, "LocationGeofenceWebsocketDisconnectLambda",
-                                                                         runtime=lambda_.Runtime.PYTHON_3_8,
+                                                                         runtime=lambda_.Runtime.PYTHON_3_10,
                                                                          description="Handles disconnection from the WebSocket API processing Location Geofence notifications",
                                                                          function_name="LocationNrfDemoNotificationApiDisconnect",
                                                                          handler="websocket-disconnect.lambda_handler",

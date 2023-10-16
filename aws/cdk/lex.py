@@ -31,7 +31,7 @@ class LexStack(Stack):
                                                    })
 
         bot_recommendations_lambda_function = lambda_.Function(self, "BotRecommendationsLambdaFunction",
-                                                               runtime=lambda_.Runtime.PYTHON_3_8,
+                                                               runtime=lambda_.Runtime.PYTHON_3_10,
                                                                description="Retail Demo Store chatbot function that returns product recommendations as ResponseCards",
                                                                function_name="RetailDemoStore-Chat-Recommendations",
                                                                handler="bot-intent-recommendations.lambda_handler",

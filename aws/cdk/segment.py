@@ -49,7 +49,7 @@ class SegmentStack(Stack):
                                                                          })
 
         lambda_.Function(self, "SegmentPersonalizeEventsDestinationLambda",
-                         runtime=lambda_.Runtime.PYTHON_3_8,
+                         runtime=lambda_.Runtime.PYTHON_3_10,
                          description="Handles sending events passed from Segment to the Personalize tracker for user-item interactions",
                          function_name="SegmentPersonalizeEventsDestination",
                          handler="segment-personalize-events-destination.lambda_handler",
@@ -59,7 +59,7 @@ class SegmentStack(Stack):
                          environment={"personalize_tracking_id": ""})
 
         lambda_.Function(self, "SegmentPersonalizeInferenceDestinationLambda",
-                         runtime=lambda_.Runtime.PYTHON_3_8,
+                         runtime=lambda_.Runtime.PYTHON_3_10,
                          description="Handles events passed from Segment to Personalize for inference",
                          function_name="SegmentPersonalizeInferenceDestination",
                          handler="segment-personalize-inference-destination.lambda_handler",

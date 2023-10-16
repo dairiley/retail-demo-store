@@ -49,12 +49,12 @@ class WebUIPipelineStack(Stack):
                                               })
 
         copy_images_lambda_function = lambda_.Function(self, "CopyImagesLambdaFunction",
-                                                       runtime=lambda_.Runtime.PYTHON_3_7,
+                                                       runtime=lambda_.Runtime.PYTHON_3_10,
                                                        description="Retail Demo Store deployment utility function that copies catalog images from staging bucket to Web UI bucket",
                                                        handler="index.handler",
                                                        code=lambda_.Code.from_asset("services/lambda/copy_images",
                                                                       bundling=BundlingOptions(
-                                                                          image=lambda_.Runtime.PYTHON_3_7.bundling_image,
+                                                                          image=lambda_.Runtime.PYTHON_3_10.bundling_image,
                                                                           command=[
                                                                               "bash", "-c",
                                                                               "pip install --no-cache -r requirements.txt -t /asset-output && cp -au . /asset-output"

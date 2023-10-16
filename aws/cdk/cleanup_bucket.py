@@ -37,12 +37,12 @@ class CleanupBucketStack(Stack):
                                               })
 
         self.function = lambda_.Function(self, "CleanupBucketLambdaFunction",
-                                         runtime=lambda_.Runtime.PYTHON_3_7,
+                                         runtime=lambda_.Runtime.PYTHON_3_10,
                                          description="Retail Demo Store deployment utility function that deletes all objects in an S3 bucket when the CloudFormation stack is deleted",
                                          handler="index.handler",
                                          code=lambda_.Code.from_asset("lambda/cleanup_bucket",
                                                                       bundling=BundlingOptions(
-                                                                          image=lambda_.Runtime.PYTHON_3_7.bundling_image,
+                                                                          image=lambda_.Runtime.PYTHON_3_10.bundling_image,
                                                                           command=[
                                                                               "bash", "-c",
                                                                               "pip install --no-cache -r requirements.txt -t /asset-output && cp -au . /asset-output"

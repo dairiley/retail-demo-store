@@ -50,7 +50,7 @@ class AlexaStack(Stack):
                             })
 
         self.alexa_skill_function = lambda_.Function(self, "AlexaSkillFunction",
-                                                     runtime=lambda_.Runtime.PYTHON_3_8,
+                                                     runtime=lambda_.Runtime.PYTHON_3_10,
                                                      handler="alexa-skill-lambda.lambda_handler",
                                                      code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "AlexaSkillFunctionBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/alexa-skill-lambda.zip"),
                                                      timeout=Duration.seconds(60),

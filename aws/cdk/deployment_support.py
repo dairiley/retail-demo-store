@@ -92,7 +92,7 @@ class DeploymentSupportStack(Stack):
 
 
         personalize_pre_create_lambda_function = lambda_.Function(self, "PersonalizePreCreateLambdaFunction",
-                                                                  runtime=lambda_.Runtime.PYTHON_3_8,
+                                                                  runtime=lambda_.Runtime.PYTHON_3_10,
                                                                   description="Retail Demo Store deployment utility function that uploads datasets, builds solutions, and creates campaigns in Amazon Personalize",
                                                                   handler="personalize_pre_create_resources.lambda_handler",
                                                                   function_name="RetailDemoStorePersonalizePreCreateResources",
@@ -178,7 +178,7 @@ class DeploymentSupportStack(Stack):
                                                        })
 
             ivs_create_channels_lambda_function = lambda_.Function(self, "IVSCreateChannelsLambdaFunction",
-                                                                      runtime=lambda_.Runtime.PYTHON_3_8,
+                                                                      runtime=lambda_.Runtime.PYTHON_3_10,
                                                                       description="Retail Demo Store deployment utility function that creates IVS channels",
                                                                       handler="ivs-create-channels.lambda_handler",
                                                                       function_name="RetailDemoStoreIVSCreateChannels",
@@ -231,7 +231,7 @@ class DeploymentSupportStack(Stack):
                                                         })
 
             opensearch_pre_index_lambda_function = lambda_.Function(self, "DeployPreIndexOpenSearch",
-                                                                    runtime=lambda_.Runtime.PYTHON_3_9,
+                                                                    runtime=lambda_.Runtime.PYTHON_3_10,
                                                                     description="Retail Demo Store deployment utility function that indexes product catalog in Amazon OpenSearch",
                                                                     handler="opensearch-pre-index.lambda_handler",
                                                                     code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "DeployPreIndexOpenSearchBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/opensearch-pre-index.zip"),
@@ -291,7 +291,7 @@ class DeploymentSupportStack(Stack):
                                                        })
 
             pinpoint_pre_create_lambda_function = lambda_.Function(self, "PinpointPreCreateLambdaFunction",
-                                                                   runtime=lambda_.Runtime.PYTHON_3_8,
+                                                                   runtime=lambda_.Runtime.PYTHON_3_10,
                                                                    description="Retail Demo Store deployment utility function that configures messaging templates, segments, and campaigns in Amazon Pinpoint",
                                                                    handler="pinpoint-auto-workshop.lambda_handler",
                                                                    code=lambda_.Code.from_bucket(s3.Bucket.from_bucket_attributes(self, "PinpointPreCreateLambdaFunctionBucket", bucket_name=props['resource_bucket']), f"{props['resource_bucket_relative_path']}aws-lambda/pinpoint-auto-workshop.zip"),
